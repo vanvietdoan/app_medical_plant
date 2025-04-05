@@ -1,0 +1,21 @@
+workflows:
+  ios-workflow:
+    name: iOS Workflow
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - flutter pub get
+      - flutter pub run flutter_launcher_icons
+      - flutter build ios --release --no-codesign
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com
+      store:
+        credentials: ENCRYPTED(...) # Your App Store Connect API Key
+        app_id: your-app-id # Your App Store Connect App ID 
