@@ -1,9 +1,9 @@
+// lib/screens/auth/login_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import '../../services/auth_service.dart';
-import '../profile/expert_profile.dart';
-import 'package:my_app/screens/home_screen.dart';
-import 'package:my_app/screens/auth/forgot_password_screen.dart';
+import '../services/auth_service.dart';
+import 'package:my_app/screens/profile/expert_profile.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,7 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _authService = AuthService();
   bool _isLoading = false;
-  bool _obscurePassword = true;
+  String _errorMessage = '';
 
   @override
   void dispose() {
@@ -35,32 +35,38 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final user = await _authService.login(
+      final response = await _authService.login(
         _emailController.text.trim(),
         _passwordController.text,
       );
 
       if (kDebugMode) {
-        debugPrint('Login successful! User: ${user.fullName}');
+        debugPrint('Login successful! User: ${response.fullName}');
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đăng nhập thành công')),
-        );
+        setState(() {
+          _errorMessage = '';
+        });
 
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => ExpertProfile(expert: user),
+            builder: (context) => ExpertProfile(expert: response),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Đăng nhập thất bại: $e')),
-        );
+        String message = 'Đăng nhập thất bại';
+        if (e.toString().contains('password')) {
+          message = 'Mật khẩu không chính xác';
+        } else if (e.toString().contains('user-not-found')) {
+          message = 'Email không tồn tại';
+        }
+        setState(() {
+          _errorMessage = message;
+        });
       }
     } finally {
       if (mounted) {
@@ -119,23 +125,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   return null;
                 },
               ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ForgotPasswordScreen(),
-                      ),
-                    );
-                  },
-                  child: const Text(
-                    'Quên mật khẩu?',
-                    style: TextStyle(color: Colors.green),
-                  ),
-                ),
-              ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -147,10 +136,21 @@ class _LoginScreenState extends State<LoginScreen> {
                       : const Text('Đăng nhập'),
                 ),
               ),
+              if (_errorMessage.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Text(
+                    _errorMessage,
+                    style: const TextStyle(
+                      color: Colors.red,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
       ),
     );
   }
-} 
+}

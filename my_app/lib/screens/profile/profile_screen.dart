@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:my_app/screens/auth/login_screen.dart';
+import '../../services/auth_service.dart';
+import '../auth/login_screen.dart';
 import 'package:my_app/screens/auth/signup_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -7,86 +8,138 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: Replace with actual authentication check
-    bool isLoggedIn = false;
+    final authService = AuthService();
+    final currentUser = authService.currentUser;
 
-    return SafeArea(
-      child: isLoggedIn ? _buildLoggedInView(context) : _buildLoggedOutView(context),
-    );
-  }
-
-  Widget _buildLoggedOutView(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Image.asset(
-            'assets/images/logo.png',
-            height: 100,
-          ),
-          const SizedBox(height: 40),
-          const Text(
-            'Đăng nhập để xem thông tin cá nhân',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Đăng nhập để chia sẻ kiến thức và đóng góp cho cộng đồng',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 40),
-          ElevatedButton(
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-              );
-              if (result == true) {
-                // If login was successful, rebuild the screen to show logged in view
-                if (context.mounted) {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ProfileScreen()),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 15),
-            ),
-            child: const Text(
-              'Đăng nhập',
+    if (currentUser == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'Vui lòng đăng nhập để xem thông tin cá nhân',
               style: TextStyle(fontSize: 16),
             ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: 200,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LoginScreen(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: const Text(
+                  'Đăng nhập',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: 200,
+              child: OutlinedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SignupScreen(),
+                    ),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.green,
+                  side: const BorderSide(color: Colors.green),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: const Text(
+                  'Đăng ký',
+                  style: TextStyle(
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Thông tin cá nhân',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit),
+                onPressed: () {
+                  // TODO: Navigate to edit profile screen
+                },
+              ),
+            ],
           ),
           const SizedBox(height: 16),
-          OutlinedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SignupScreen()),
-              );
-            },
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.green,
-              padding: const EdgeInsets.symmetric(vertical: 15),
-              side: const BorderSide(color: Colors.green),
+          Center(
+            child: CircleAvatar(
+              radius: 50,
+              backgroundImage: currentUser.avatarUrl != null
+                  ? NetworkImage(currentUser.avatarUrl!)
+                  : null,
+              child: currentUser.avatarUrl == null
+                  ? Text(
+                      currentUser.fullName.substring(0, 1).toUpperCase(),
+                      style: const TextStyle(fontSize: 32),
+                    )
+                  : null,
             ),
-            child: const Text(
-              'Đăng ký',
-              style: TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 24),
+          _buildInfoSection('Họ và tên', currentUser.fullName),
+          _buildInfoSection('Email', currentUser.email),
+          _buildInfoSection('Chuyên ngành', currentUser.specialty),
+          if (currentUser.title != null)
+            _buildInfoSection('Chức danh', currentUser.title!),
+          if (currentUser.phoneNumber != null)
+            _buildInfoSection('Số điện thoại', currentUser.phoneNumber!),
+          if (currentUser.specialization != null)
+            _buildInfoSection('Chuyên môn', currentUser.specialization!),
+          if (currentUser.experience != null)
+            _buildInfoSection('Kinh nghiệm', '${currentUser.experience} năm'),
+          if (currentUser.bio != null)
+            _buildInfoSection('Giới thiệu', currentUser.bio!),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                authService.logout();
+                // Refresh the screen
+                (context as Element).markNeedsBuild();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              child: const Text('Đăng xuất'),
             ),
           ),
         ],
@@ -94,150 +147,25 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLoggedInView(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20.0),
+  Widget _buildInfoSection(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const CircleAvatar(
-                radius: 40,
-                backgroundColor: Colors.green,
-                child: Icon(
-                  Icons.person,
-                  size: 40,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(width: 16),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'TS. Nguyễn Văn A',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'Chuyên khoa: Dược liệu',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: () {
-                  // TODO: Navigate to edit profile
-                },
-                icon: const Icon(Icons.edit),
-                color: Colors.green,
-              ),
-            ],
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.grey,
+            ),
           ),
-          const SizedBox(height: 24),
-          const Text(
-            'Đơn vị công tác',
-            style: TextStyle(
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
               fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Bệnh viện Y học cổ truyền Trung ương',
-            style: TextStyle(fontSize: 14),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Giới thiệu bản thân',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Chuyên gia với hơn 20 năm kinh nghiệm trong lĩnh vực y học cổ truyền và dược liệu. Tham gia nghiên cứu và phát triển nhiều bài thuốc từ thảo dược.',
-            style: TextStyle(fontSize: 14),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'Đề xuất gần đây',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: 5,
-            itemBuilder: (context, index) {
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.healing, color: Colors.red),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Đau đầu',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const Spacer(),
-                          Text(
-                            '24/03/2024',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Sử dụng đinh lăng kết hợp với gừng tươi để điều trị đau đầu...',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {
-              // TODO: Implement logout
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfileScreen()),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 15),
-            ),
-            child: const Text(
-              'Đăng xuất',
-              style: TextStyle(fontSize: 16),
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],

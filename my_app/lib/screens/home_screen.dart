@@ -3,7 +3,8 @@ import 'package:my_app/screens/disease/disease_screen.dart';
 import 'package:my_app/screens/plants/plants_screen.dart';
 import 'package:my_app/screens/profile/profile_screen.dart';
 import 'package:my_app/screens/plants/plant_detail_screen.dart';
-import 'package:my_app/screens/profile/expert_profile_screen.dart';
+import 'package:my_app/screens/profile/expert_profile.dart';
+import 'package:my_app/models/user.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,7 +25,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final List<String> titles = [
+      'Trang chủ',
+      'Cây thuốc',
+      'Bệnh',
+      'Cá nhân',
+    ];
+
     return Scaffold(
+      appBar: AppBar(
+        title: Text(titles[_selectedIndex]),
+        backgroundColor: Colors.green,
+      ),
       body: _screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
@@ -264,12 +276,20 @@ class HomeTab extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const ExpertProfileScreen(),
+                builder: (context) => ExpertProfile(
+                  expert: User(
+                    userId: 1,
+                    fullName: 'TS. Nguyễn Văn A',
+                    email: 'nguyenvana@example.com',
+                    roleId: 2,
+                    specialty: 'Dược liệu',
+                  ),
+                ),
               ),
             );
           },
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
+          child: const Padding(
+            padding: EdgeInsets.all(8.0),
             child: Row(
               children: [
                 const CircleAvatar(
