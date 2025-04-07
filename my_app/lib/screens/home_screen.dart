@@ -3,13 +3,10 @@ import 'package:my_app/screens/disease/disease_screen.dart';
 import 'package:my_app/screens/plants/plants_screen.dart';
 import 'package:my_app/screens/plants/plant_detail_screen.dart';
 import 'package:my_app/screens/profile/expert_profile.dart';
-import 'package:my_app/models/user.dart';
 import 'package:my_app/models/plant.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../services/base_api_service.dart';
-import '../services/auth_service.dart';
-import 'auth/login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,100 +16,98 @@ class HomeScreen extends StatefulWidget {
 }
 
 class HomeScreenState extends State<HomeScreen> {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: CustomAppBar(),
-      body: const HomeTab(), 
-      bottomNavigationBar: const CustomBottomNav(
-        currentIndex: 0,
-      ),
-    );
-  }
-
-}
-class HomeTab extends StatefulWidget {
-  const HomeTab({super.key});
-
-  @override
-  State<HomeTab> createState() => _HomeTabState();
-}
-
-class _HomeTabState extends State<HomeTab> {
   final BaseApiService _apiService = BaseApiService();
   List<Plant> _recentPlants = [];
-  bool _isLoadingPlants = true;
+  List<Plant> _mostBeneficialPlants = [];
+  List<Plant> _featuredPlants = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadRecentPlants();
+    _loadPlants();
   }
 
-  Future<void> _loadRecentPlants() async {
+  Future<void> _loadPlants() async {
+    setState(() => _isLoading = true);
     try {
       final plants = await _apiService.getPlants();
-      // Sort plants by created_at in descending order and take top 10
-      plants.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       setState(() {
-        _recentPlants = plants.take(10).toList();
-        _isLoadingPlants = false;
+        // Sort by creation date for recent plants
+        _recentPlants = List.from(plants)
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        _recentPlants = _recentPlants.take(10).toList();
+
+        // Sort by benefits length for most beneficial plants
+        _mostBeneficialPlants = List.from(plants)
+          ..sort((a, b) => b.benefits.length.compareTo(a.benefits.length));
+        _mostBeneficialPlants = _mostBeneficialPlants.take(10).toList();
+
+        // Sort by description length for featured plants
+        _featuredPlants = List.from(plants)
+          ..sort((a, b) => b.description.length.compareTo(a.description.length));
+        _featuredPlants = _featuredPlants.take(10).toList();
+
+        _isLoading = false;
       });
     } catch (e) {
-      setState(() {
-        _isLoadingPlants = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Không thể tải danh sách cây thuốc: $e')),
-        );
-      }
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Không thể tải cây thuốc: $e'),
+        backgroundColor: Colors.red,
+      ));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: SingleChildScrollView(
+    return Scaffold(
+      appBar: CustomAppBar(),
+      body: SingleChildScrollView(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Tìm kiếm cây thuốc....',
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                ),
-              ),
-            ),
-            _buildSection(
+            _searchBar(),
+            _buildPlantSection(
               'Top 10 Cây Thuốc Mới Phát Hiện',
-              _isLoadingPlants
+              _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _recentPlants.length,
-                      itemBuilder: (context, index) => _buildPlantCard(
-                        context,
-                        _recentPlants[index],
-                      ),
-                    ),
+                  : _buildPlantList(_recentPlants),
+            ),
+            _buildPlantSection(
+              'Top 10 Cây Thuốc Có Nhiều Công Dụng',
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _buildPlantList(_mostBeneficialPlants),
+            ),
+            _buildPlantSection(
+              'Top 10 Cây Thuốc Tiêu Biểu',
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _buildPlantList(_featuredPlants),
             ),
           ],
+        ),
+      ),
+      bottomNavigationBar: const CustomBottomNav(currentIndex: 0),
+    );
+  }
+
+  Widget _searchBar() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: TextField(
+        decoration: InputDecoration(
+          hintText: 'Tìm kiếm cây thuốc...',
+          prefixIcon: const Icon(Icons.search),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSection(String title, Widget content) {
+  Widget _buildPlantSection(String title, Widget content) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -127,68 +122,65 @@ class _HomeTabState extends State<HomeTab> {
           ),
         ),
         SizedBox(
-          height: title == 'Chuyên Gia Tiêu Biểu' ? 120 : 200,
+          height: 200,
           child: content,
         ),
       ],
     );
   }
 
-  Widget _buildPlantCard(BuildContext context, Plant plant) {
+  Widget _buildPlantList(List<Plant> plants) {
+    return SizedBox(
+      height: 200,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: plants.length,
+        itemBuilder: (context, index) {
+          return _buildPlantCard(plants[index]);
+        },
+      ),
+    );
+  }
+
+  Widget _buildPlantCard(Plant plant) {
     return Card(
       margin: const EdgeInsets.all(8),
-      child: SizedBox(
-        width: 150,
-        child: InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PlantDetailScreen(plantId: plant.plantId),
-              ),
-            );
-          },
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(4),
-                ),
-                child: Image.asset(
-                  'assets/images/plant_placeholder.png',
-                  height: 120,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      plant.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PlantDetailScreen(plantId: plant.plantId),
+            ),
+          );
+        },
+        child: Column(
+          children: [
+            Image.asset(
+              'assets/images/plant_placeholder.png',
+              height: 120,
+              width: 150,
+              fit: BoxFit.cover,
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                children: [
+                  Text(
+                    plant.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    plant.englishName,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[600],
                     ),
-                    Text(
-                      plant.englishName,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

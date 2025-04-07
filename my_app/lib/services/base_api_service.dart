@@ -171,7 +171,10 @@ class BaseApiService {
   Future<Plant> getPlantById(int id) async {
     try {
       final response = await get<Map<String, dynamic>>('/plants/$id');
-      return Plant.fromJson(response['data']);
+      if (response == null) {
+        throw Exception('Không tìm thấy thông tin cây thuốc');
+      }
+      return Plant.fromJson(response);
     } catch (e) {
       if (kDebugMode) {
         debugPrint('Error fetching plant details: $e');
