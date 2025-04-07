@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
+import '../../screens/home_screen.dart';
+import '../../widgets/custom_app_bar.dart';
+import '../../widgets/custom_bottom_nav.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -56,10 +59,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Quên mật khẩu'),
-        backgroundColor: Colors.green,
-      ),
+      appBar: CustomAppBar(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -114,6 +114,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ],
           ),
         ),
+      ),
+      bottomNavigationBar: const CustomBottomNav(
+        currentIndex: 3,
       ),
     );
   }

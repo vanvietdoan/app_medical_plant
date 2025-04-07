@@ -1,78 +1,74 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/screens/disease/disease_screen.dart';
 import 'package:my_app/screens/plants/plants_screen.dart';
-import 'package:my_app/screens/profile/profile_screen.dart';
 import 'package:my_app/screens/plants/plant_detail_screen.dart';
 import 'package:my_app/screens/profile/expert_profile.dart';
 import 'package:my_app/models/user.dart';
+import 'package:my_app/models/plant.dart';
+import '../widgets/custom_app_bar.dart';
+import '../widgets/custom_bottom_nav.dart';
+import '../services/base_api_service.dart';
+import '../services/auth_service.dart';
+import 'auth/login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
-  
-  final List<Widget> _screens = [
-    const HomeTab(),
-    const PlantsScreen(),
-    const DiseaseScreen(),
-    const ProfileScreen(),
-  ];
-
+class HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
-    final List<String> titles = [
-      'Trang chủ',
-      'Cây thuốc',
-      'Bệnh',
-      'Cá nhân',
-    ];
-
     return Scaffold(
-      appBar: AppBar(
-        title: Text(titles[_selectedIndex]),
-        backgroundColor: Colors.green,
-      ),
-      body: _screens[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Trang chủ',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.local_florist),
-            label: 'Cây thuốc',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.healing),
-            label: 'Bệnh',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Cá nhân',
-          ),
-        ],
+      appBar: CustomAppBar(),
+      body: const HomeTab(), 
+      bottomNavigationBar: const CustomBottomNav(
+        currentIndex: 0,
       ),
     );
   }
+
+}
+class HomeTab extends StatefulWidget {
+  const HomeTab({super.key});
+
+  @override
+  State<HomeTab> createState() => _HomeTabState();
 }
 
-class HomeTab extends StatelessWidget {
-  const HomeTab({super.key});
+class _HomeTabState extends State<HomeTab> {
+  final BaseApiService _apiService = BaseApiService();
+  List<Plant> _recentPlants = [];
+  bool _isLoadingPlants = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecentPlants();
+  }
+
+  Future<void> _loadRecentPlants() async {
+    try {
+      final plants = await _apiService.getPlants();
+      // Sort plants by created_at in descending order and take top 10
+      plants.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      setState(() {
+        _recentPlants = plants.take(10).toList();
+        _isLoadingPlants = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingPlants = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Không thể tải danh sách cây thuốc: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,40 +91,20 @@ class HomeTab extends StatelessWidget {
               ),
             ),
             _buildSection(
-              'Cây Thuốc Tiêu Biểu',
-              ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                itemCount: 5,
-                itemBuilder: (context, index) => _buildPlantCard(context),
-              ),
-            ),
-            _buildSection(
-              'Cây Thuốc Đa Công Dụng',
-              ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                itemCount: 5,
-                itemBuilder: (context, index) => _buildPlantCard(context),
-              ),
-            ),
-            _buildSection(
-              'Cây Thuốc Mới Phát Hiện',
-              ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                itemCount: 5,
-                itemBuilder: (context, index) => _buildPlantCard(context),  
-              ),
-            ),
-            _buildSection(
-              'Chuyên Gia Có Nhiều Đóng góp',
-              ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                itemCount: 5,
-                itemBuilder: (context, index) => _buildExpertCard(context),
-              ),
+              'Top 10 Cây Thuốc Mới Phát Hiện',
+              _isLoadingPlants
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _recentPlants.length,
+                      itemBuilder: (context, index) => _buildPlantCard(
+                        context,
+                        _recentPlants[index],
+                      ),
+                    ),
             ),
           ],
         ),
@@ -136,7 +112,7 @@ class HomeTab extends StatelessWidget {
     );
   }
 
-  Widget _buildSection(String title, Widget content, ) {
+  Widget _buildSection(String title, Widget content) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -158,59 +134,7 @@ class HomeTab extends StatelessWidget {
     );
   }
 
-  Widget _buildFeaturedPlantCard() {
-    return Card(
-      margin: const EdgeInsets.all(8),
-      child: SizedBox(
-        width: 300,
-        child: InkWell(
-          onTap: () {
-          },
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(4),
-                ),
-                child: Image.asset(
-                  'assets/images/plant_placeholder.png',
-                  height: 120,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Đinh lăng',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Polyscias fruticosa',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlantCard(BuildContext context) {
+  Widget _buildPlantCard(BuildContext context, Plant plant) {
     return Card(
       margin: const EdgeInsets.all(8),
       child: SizedBox(
@@ -218,9 +142,9 @@ class HomeTab extends StatelessWidget {
         child: InkWell(
           onTap: () {
             Navigator.push(
-              context,  
+              context,
               MaterialPageRoute(
-                builder: (context) => const PlantDetailScreen(),
+                builder: (context) => PlantDetailScreen(plantId: plant.plantId),
               ),
             );
           },
@@ -238,23 +162,27 @@ class HomeTab extends StatelessWidget {
                   fit: BoxFit.cover,
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.all(8.0),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Đinh lăng',
-                      style: TextStyle(
+                      plant.name,
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      'Polyscias fruticosa',
-                      style: TextStyle(
+                      plant.englishName,
+                      style: const TextStyle(
                         fontSize: 12,
                         color: Colors.grey,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -265,69 +193,4 @@ class HomeTab extends StatelessWidget {
       ),
     );
   }
-
-  Widget _buildExpertCard(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.all(8),
-      child: SizedBox(
-        width: 200,
-        child: InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ExpertProfile(
-                  expert: User(
-                    userId: 1,
-                    fullName: 'TS. Nguyễn Văn A',
-                    email: 'nguyenvana@example.com',
-                    roleId: 2,
-                    specialty: 'Dược liệu',
-                  ),
-                ),
-              ),
-            );
-          },
-          child: const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                const CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.green,
-                  child: Icon(
-                    Icons.person,
-                    size: 30,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'TS. Nguyễn Văn A',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        'Chuyên khoa: Dược liệu',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-} 
+}

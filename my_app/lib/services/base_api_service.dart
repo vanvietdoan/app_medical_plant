@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import '../models/user.dart';
+import '../models/plant.dart';
 
 class BaseApiService {
   static const String baseUrl = 'http://157.20.58.220:2204/api';
@@ -145,6 +147,34 @@ class BaseApiService {
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Error: $e');
+      }
+      rethrow;
+    }
+  }
+
+ 
+
+  // Get list of plants
+  Future<List<Plant>> getPlants() async {
+    try {
+      final response = await get<List<dynamic>>('/plants');
+      return response.map((json) => Plant.fromJson(json)).toList();
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Error fetching plants: $e');
+      }
+      rethrow;
+    }
+  }
+
+  // Get plant details by ID
+  Future<Plant> getPlantById(int id) async {
+    try {
+      final response = await get<Map<String, dynamic>>('/plants/$id');
+      return Plant.fromJson(response['data']);
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Error fetching plant details: $e');
       }
       rethrow;
     }
