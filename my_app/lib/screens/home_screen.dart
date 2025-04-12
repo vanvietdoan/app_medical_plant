@@ -6,7 +6,7 @@ import 'package:my_app/screens/profile/expert_profile.dart';
 import 'package:my_app/models/plant.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_bottom_nav.dart';
-import '../services/base_api_service.dart';
+import '../services/plant_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,7 +16,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class HomeScreenState extends State<HomeScreen> {
-  final BaseApiService _apiService = BaseApiService();
+  final PlantService _plantService = PlantService();
   List<Plant> _recentPlants = [];
   List<Plant> _mostBeneficialPlants = [];
   List<Plant> _featuredPlants = [];
@@ -31,7 +31,7 @@ class HomeScreenState extends State<HomeScreen> {
   Future<void> _loadPlants() async {
     setState(() => _isLoading = true);
     try {
-      final plants = await _apiService.getPlants();
+      final plants = await _plantService.getPlants();
       setState(() {
         // Sort by creation date for recent plants
         _recentPlants = List.from(plants)
@@ -157,7 +157,7 @@ class HomeScreenState extends State<HomeScreen> {
         child: Column(
           children: [
             Image.asset(
-              'assets/images/plant_placeholder.png',
+              'assets/images/sam.png',
               height: 120,
               width: 150,
               fit: BoxFit.cover,

@@ -1,6 +1,7 @@
 import 'role.dart';
 
 class User {
+  final int id;
   final String fullName;
   final String title;
   final String proof;
@@ -11,6 +12,7 @@ class User {
   final Role? role;
 
   User({
+    required this.id,
     required this.fullName,
     required this.title,
     required this.proof,
@@ -23,6 +25,7 @@ class User {
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
+      id: json['id'] ?? 0,
       fullName: json['full_name'] ?? '',
       title: json['title'] ?? '',
       proof: json['proof'] ?? '',
@@ -35,6 +38,7 @@ class User {
   }
 
   Map<String, dynamic> toJson() => {
+    'id': id,
     'full_name': fullName,
     'title': title,
     'proof': proof,

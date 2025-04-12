@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/plant.dart';
-import '../../services/base_api_service.dart';
+import '../../services/plant_service.dart';
 
 class PlantDetailScreen extends StatefulWidget {
   final int plantId;
@@ -12,7 +12,7 @@ class PlantDetailScreen extends StatefulWidget {
 }
 
 class _PlantDetailScreenState extends State<PlantDetailScreen> {
-  final BaseApiService _apiService = BaseApiService();
+  final PlantService _plantService = PlantService();
   bool _isLoading = true;
   Plant? _plant;
 
@@ -24,7 +24,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
 
   Future<void> _loadPlantDetails() async {
     try {
-      final plant = await _apiService.getPlantById(widget.plantId);
+      final plant = await _plantService.getPlantById(widget.plantId);
       setState(() {
         _plant = plant;
         _isLoading = false;

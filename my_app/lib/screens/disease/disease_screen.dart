@@ -2,11 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:my_app/screens/plants/plant_detail_screen.dart';
 import '../../widgets/custom_bottom_nav.dart';
 import '../../widgets/custom_app_bar.dart';
-import '../home_screen.dart';
-import '../plants/plants_screen.dart';
-import '../auth/login_screen.dart';
-import '../profile/expert_profile.dart';
-import '../../services/auth_service.dart';
+
 
 class DiseaseScreen extends StatelessWidget {
   const DiseaseScreen({super.key});

@@ -63,11 +63,35 @@ class AuthService {
     }
   }
 
-  void logout() {
-    _apiService.clearToken();
-    _currentUser = null;
+  /// Logout user
+  Future<void> logout() async {
+    try {
+      // Get the current user's email
+      final userEmail = _currentUser?.email ?? '';
+      
+      await _apiService.post<Map<String, dynamic>>('/auth/logout', {
+        'email': userEmail,
+      });
+      
+      _apiService.clearToken();
+      _currentUser = null;
+      if (kDebugMode) {
+        debugPrint('✅ Đã đăng xuất');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Lỗi đăng xuất: $e');
+      }
+      // Still clear local data even if API call fails
+      _apiService.clearToken();
+      _currentUser = null;
+    }
+  }
+
+  void updateCurrentUser(User user) {
+    _currentUser = user;
     if (kDebugMode) {
-      debugPrint('✅ Đã đăng xuất');
+      debugPrint('✅ Đã cập nhật thông tin người dùng');
     }
   }
 }

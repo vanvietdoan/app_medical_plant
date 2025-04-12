@@ -66,7 +66,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   child: currentUser?.avatar != null
                       ? ClipOval(
                           child: Image.network(
-                            currentUser!.fullName,
+                            currentUser!.avatar,
                             width: 40,
                             height: 40,
                             fit: BoxFit.cover,

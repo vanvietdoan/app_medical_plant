@@ -5,6 +5,8 @@ import '../auth/login_screen.dart';
 import '../../widgets/custom_app_bar.dart'; 
 import '../../widgets/custom_bottom_nav.dart';
 import '../../services/auth_service.dart';
+import 'edit_profile_screen.dart';
+import 'change_password_screen.dart';
 
 class ExpertProfile extends StatefulWidget {
   final User expert;
@@ -28,7 +30,6 @@ class ExpertProfileState extends State<ExpertProfile> {
   @override
   void initState() {
     super.initState();
-    // Khởi tạo controller với giá trị hiện tại
     _fullNameController = TextEditingController(text: widget.expert.fullName);
     _emailController = TextEditingController(text: widget.expert.email);
     _specialtyController = TextEditingController(text: widget.expert.specialty);
@@ -37,7 +38,6 @@ class ExpertProfileState extends State<ExpertProfile> {
 
   @override
   void dispose() {
-    // Giải phóng các controller
     _fullNameController.dispose();
     _emailController.dispose();
     _specialtyController.dispose();
@@ -65,44 +65,162 @@ class ExpertProfileState extends State<ExpertProfile> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Avatar Section
             Center(
-              child: CircleAvatar(
-                radius: 50,
-                backgroundImage: NetworkImage(widget.expert.avatar),
-                child: widget.expert.avatar.isEmpty
-                    ? Text(
-                        widget.expert.fullName.substring(0, 1).toUpperCase(),
-                        style: const TextStyle(fontSize: 32),
-                      )
-                    : null,
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundImage: widget.expert.avatar.isNotEmpty
+                        ? NetworkImage(widget.expert.avatar)
+                        : null,
+                    child: widget.expert.avatar.isEmpty
+                        ? Text(
+                            widget.expert.fullName.substring(0, 1).toUpperCase(),
+                            style: const TextStyle(fontSize: 32),
+                          )
+                        : null,
+                  ),
+                  if (widget.expert.avatar.isNotEmpty)
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.check,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
             const SizedBox(height: 24),
-            _buildEditableInfoSection('Họ và tên', _fullNameController),
-            _buildEditableInfoSection('Email', _emailController),
-            _buildEditableInfoSection('Chuyên ngành', _specialtyController),
-            _buildEditableInfoSection('Chức danh', _titleController),
-            if (!widget.expert.active)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8.0),
+
+            // Role Badge
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 child: Text(
-                  'Tài khoản chưa được kích hoạt',
-                  style: TextStyle(
-                    color: Colors.red,
+                  widget.expert.role?.name ?? 'Chuyên gia',
+                  style: const TextStyle(
+                    color: Colors.green,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-            const SizedBox(height: 20),
-            _isEditing
-                ? ElevatedButton(
-                    onPressed: _saveChanges,
-                    child: const Text('Lưu'),
-                  )
-                : ElevatedButton(
-                    onPressed: _editProfile,
-                    child: const Text('Sửa'),
+            ),
+            const SizedBox(height: 24),
+
+            // Profile Information
+            _buildInfoSection('Họ và tên', widget.expert.fullName),
+            _buildInfoSection('Email', widget.expert.email),
+            _buildInfoSection('Chức danh', widget.expert.title),
+            _buildInfoSection('Chuyên ngành', widget.expert.specialty),
+
+            // Proof File Section
+            if (widget.expert.proof.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Text(
+                'Giấy tờ chứng minh',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: () {
+                  // TODO: Implement PDF viewer
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(8),
                   ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.picture_as_pdf, color: Colors.red),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          widget.expert.proof,
+                          style: const TextStyle(
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                      const Icon(Icons.download, size: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+
+            // Account Status
+            if (!widget.expert.active)
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded, color: Colors.red),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Tài khoản chưa được kích hoạt',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      onPressed: _editProfile,
+                      icon: const Icon(Icons.edit),
+                      label: const Text('Chỉnh sửa thông tin'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SizedBox(
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      onPressed: _changePassword,
+                      icon: const Icon(Icons.lock),
+                      label: const Text('Đổi mật khẩu'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -112,7 +230,7 @@ class ExpertProfileState extends State<ExpertProfile> {
     );
   }
 
-  Widget _buildEditableInfoSection(String label, TextEditingController controller) {
+  Widget _buildInfoSection(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
@@ -126,41 +244,35 @@ class ExpertProfileState extends State<ExpertProfile> {
             ),
           ),
           const SizedBox(height: 4),
-          _isEditing
-              ? TextField(
-                  controller: controller,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                  ),
-                )
-              : Text(
-                  controller.text,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const Divider(),
         ],
       ),
     );
   }
 
-  // Hàm sửa thông tin
+  void _changePassword() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
+    );
+  }
+
   void _editProfile() {
-    setState(() {
-      _isEditing = true;
-    });
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditProfileScreen(user: widget.expert),
+      ),
+    );
   }
 
-  // Hàm lưu thông tin
-  void _saveChanges() {
-    setState(() {
-      _isEditing = false;
-    });
-   
-  }
-
-  // Hàm xử lý đăng xuất
   void _handleLogout(BuildContext context) {
     final authService = AuthService();
     authService.logout();

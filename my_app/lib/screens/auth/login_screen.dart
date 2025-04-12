@@ -89,6 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
         automaticallyImplyLeading: false,
         title: const Text('Đăng nhập'),
       ),
+     // appBar: CustomAppBar(),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
