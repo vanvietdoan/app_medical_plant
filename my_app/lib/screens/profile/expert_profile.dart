@@ -21,7 +21,7 @@ class ExpertProfile extends StatefulWidget {
 }
 
 class ExpertProfileState extends State<ExpertProfile> {
-  late TextEditingController _fullNameController;
+  late TextEditingController _full_nameController;
   late TextEditingController _emailController;
   late TextEditingController _specialtyController;
   late TextEditingController _titleController;
@@ -30,7 +30,7 @@ class ExpertProfileState extends State<ExpertProfile> {
   @override
   void initState() {
     super.initState();
-    _fullNameController = TextEditingController(text: widget.expert.fullName);
+    _full_nameController = TextEditingController(text: widget.expert.full_name);
     _emailController = TextEditingController(text: widget.expert.email);
     _specialtyController = TextEditingController(text: widget.expert.specialty);
     _titleController = TextEditingController(text: widget.expert.title);
@@ -38,7 +38,7 @@ class ExpertProfileState extends State<ExpertProfile> {
 
   @override
   void dispose() {
-    _fullNameController.dispose();
+    _full_nameController.dispose();
     _emailController.dispose();
     _specialtyController.dispose();
     _titleController.dispose();
@@ -76,7 +76,7 @@ class ExpertProfileState extends State<ExpertProfile> {
                         : null,
                     child: widget.expert.avatar.isEmpty
                         ? Text(
-                            widget.expert.fullName.substring(0, 1).toUpperCase(),
+                            widget.expert.full_name.substring(0, 1).toUpperCase(),
                             style: const TextStyle(fontSize: 32),
                           )
                         : null,
@@ -123,7 +123,7 @@ class ExpertProfileState extends State<ExpertProfile> {
             const SizedBox(height: 24),
 
             // Profile Information
-            _buildInfoSection('Họ và tên', widget.expert.fullName),
+            _buildInfoSection('Họ và tên', widget.expert.full_name),
             _buildInfoSection('Email', widget.expert.email),
             _buildInfoSection('Chức danh', widget.expert.title),
             _buildInfoSection('Chuyên ngành', widget.expert.specialty),

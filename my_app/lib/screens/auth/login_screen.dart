@@ -6,7 +6,6 @@ import 'package:my_app/screens/auth/forgot_password_screen.dart';
 import 'package:my_app/screens/auth/signup_screen.dart';
 import 'package:my_app/screens/plants/plants_screen.dart';
 import 'package:my_app/screens/disease/disease_screen.dart';
-import '../../widgets/custom_app_bar.dart';
 import '../../widgets/custom_bottom_nav.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -23,14 +22,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _authService = AuthService();
   bool _isLoading = false;
   String _errorMessage = '';
-  int _selectedIndex = 0;
-
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const PlantsScreen(),
-    const DiseaseScreen(),
-    const LoginScreen(),
-  ];
 
   @override
   void dispose() {
@@ -48,7 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final response = await _authService.login(
+      final user = await _authService.login(
         _emailController.text.trim(),
         _passwordController.text,
       );
@@ -56,9 +47,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
-            builder: (context) => ExpertProfile(expert: response),
+            builder: (context) => ExpertProfile(expert: user),
           ),
-          (route) => false, 
+          (route) => false,
         );
       }
     } catch (e) {
@@ -68,6 +59,8 @@ class _LoginScreenState extends State<LoginScreen> {
           message = 'Mật khẩu không chính xác';
         } else if (e.toString().contains('user-not-found')) {
           message = 'Email không tồn tại';
+        } else if (e.toString().contains('Đăng nhập thất bại')) {
+          message = 'Email hoặc mật khẩu không đúng';
         }
         setState(() {
           _errorMessage = message;
@@ -89,116 +82,106 @@ class _LoginScreenState extends State<LoginScreen> {
         automaticallyImplyLeading: false,
         title: const Text('Đăng nhập'),
       ),
-     // appBar: CustomAppBar(),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Vui lòng nhập email';
-                    }
-                    if (!value.contains('@')) {
-                      return 'Email không hợp lệ';
-                    }
-                    return null;
-                  },
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(
-                    labelText: 'Mật khẩu',
-                    border: OutlineInputBorder(),
-                  ),
-                  obscureText: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Vui lòng nhập mật khẩu';
-                    }
-                    if (value.length < 6) {
-                      return 'Mật khẩu phải có ít nhất 6 ký tự';
-                    }
-                    return null;
-                  },
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Vui lòng nhập email';
+                  }
+                  if (!value.contains('@')) {
+                    return 'Email không hợp lệ';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _passwordController,
+                decoration: const InputDecoration(
+                  labelText: 'Mật khẩu',
+                  border: OutlineInputBorder(),
                 ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
+                obscureText: true,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Vui lòng nhập mật khẩu';
+                  }
+                  if (value.length < 6) {
+                    return 'Mật khẩu phải có ít nhất 6 ký tự';
+                  }
+                  return null;
+                },
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const ForgotPasswordScreen()),
+                    );
+                  },
+                  child: const Text(
+                    'Quên mật khẩu?',
+                    style: TextStyle(color: Colors.green),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _handleLogin,
+                  child: _isLoading
+                      ? const CircularProgressIndicator()
+                      : const Text('Đăng nhập'),
+                ),
+              ),
+              if (_errorMessage.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Text(
+                    _errorMessage,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Chưa có tài khoản?'),
+                  TextButton(
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => const ForgotPasswordScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const SignupScreen()),
                       );
                     },
                     child: const Text(
-                      'Quên mật khẩu?',
+                      'Đăng ký',
                       style: TextStyle(color: Colors.green),
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _handleLogin,
-                    child: _isLoading
-                        ? const CircularProgressIndicator()
-                        : const Text('Đăng nhập'),
-                  ),
-                ),
-                if (_errorMessage.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: Text(
-                      _errorMessage,
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('Chưa có tài khoản?'),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const SignupScreen(),
-                          ),
-                        );
-                      },
-                      child: const Text(
-                        'Đăng ký',
-                        style: TextStyle(color: Colors.green),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
-      bottomNavigationBar: const CustomBottomNav(
-        currentIndex: 3,
-      ),
+      bottomNavigationBar: const CustomBottomNav(currentIndex: 3),
     );
   }
-} 
- 
+}

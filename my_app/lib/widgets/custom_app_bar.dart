@@ -34,7 +34,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             children: [
               if (currentUser != null) ...[
                 Text(
-                  currentUser.fullName,
+                  currentUser.full_name,
                   style: const TextStyle(
                     color: Colors.green,
                     fontSize: 16,
@@ -66,7 +66,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   child: currentUser?.avatar != null
                       ? ClipOval(
                           child: Image.network(
-                            currentUser!.avatar,
+                            currentUser!.avatar!,
                             width: 40,
                             height: 40,
                             fit: BoxFit.cover,

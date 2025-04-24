@@ -2,7 +2,7 @@ import 'role.dart';
 
 class User {
   final int id;
-  final String fullName;
+  final String full_name;
   final String title;
   final String proof;
   final String specialty;
@@ -13,7 +13,7 @@ class User {
 
   User({
     required this.id,
-    required this.fullName,
+    required this.full_name,
     required this.title,
     required this.proof,
     required this.specialty,
@@ -26,7 +26,7 @@ class User {
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'] ?? 0,
-      fullName: json['full_name'] ?? '',
+      full_name: json['full_name'] ?? '',
       title: json['title'] ?? '',
       proof: json['proof'] ?? '',
       specialty: json['specialty'] ?? '',
@@ -38,14 +38,14 @@ class User {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'full_name': fullName,
-    'title': title,
-    'proof': proof,
-    'specialty': specialty,
-    'active': active,
-    'avatar': avatar,
-    'email': email,
-    'role': role?.toJson(),
-  };
-} 
+        'id': id,
+        'full_name': full_name,
+        'title': title,
+        'proof': proof,
+        'specialty': specialty,
+        'active': active,
+        'avatar': avatar,
+        'email': email,
+        'role': role?.toJson(),
+      };
+}

@@ -32,15 +32,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     try {
       await _userService.forgotPassword(_emailController.text);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Hướng dẫn đặt lại mật khẩu đã được gửi đến email của bạn'),
+            content: Text(
+                'Hướng dẫn đặt lại mật khẩu đã được gửi đến email của bạn'),
             backgroundColor: Colors.green,
           ),
         );
-        
+
         // Navigate back to login screen
         Navigator.pushReplacement(
           context,
@@ -53,7 +54,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         if (e.toString().contains('User not found')) {
           errorMessage = 'Email không tồn tại trong hệ thống';
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
@@ -73,7 +74,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-       appBar: AppBar(
+      appBar: AppBar(
         backgroundColor: const Color(0xFFF7FBF1),
         elevation: 0,
         leading: BackButton(color: Colors.green),
@@ -122,7 +123,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
                         )
                       : const Text(
                           'Gửi yêu cầu',
@@ -142,4 +144,4 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       ),
     );
   }
-} 
+}

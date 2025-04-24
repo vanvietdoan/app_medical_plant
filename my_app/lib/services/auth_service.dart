@@ -26,7 +26,7 @@ class AuthService {
       final token = response['token'] as String;
       _apiService.setToken(token);
 
-      // Parse and store user data
+      // Get user data from login response
       final userData = response['user'] as Map<String, dynamic>;
 
       // Get complete user profile using the ID from login response
@@ -44,10 +44,14 @@ class AuthService {
 
   Future<User> getUserProfile(int userId) async {
     try {
-      final response = await _apiService.get<Map<String, dynamic>>('/users/$userId');
+      final response =
+          await _apiService.get<Map<String, dynamic>>('/users/$userId');
 
-      // ✅ API trả về một object, không phải danh sách
-      return User.fromJson(response);
+      // API trả về data trong response
+      if (response['data'] != null) {
+        return User.fromJson(response['data']);
+      }
+      throw Exception('Không tìm thấy thông tin người dùng');
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Lỗi lấy thông tin người dùng: $e');
@@ -68,11 +72,11 @@ class AuthService {
     try {
       // Get the current user's email
       final userEmail = _currentUser?.email ?? '';
-      
+
       await _apiService.post<Map<String, dynamic>>('/auth/logout', {
         'email': userEmail,
       });
-      
+
       _apiService.clearToken();
       _currentUser = null;
       if (kDebugMode) {

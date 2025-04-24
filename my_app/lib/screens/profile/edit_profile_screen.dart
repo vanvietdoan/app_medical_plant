@@ -19,12 +19,12 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _userService = UserService();
-  
-  late TextEditingController _fullNameController;
+
+  late TextEditingController _full_nameController;
   late TextEditingController _emailController;
   late TextEditingController _specialtyController;
   late TextEditingController _titleController;
-  
+
   bool _isLoading = false;
   String? _avatarPath;
   String? _proofPath;
@@ -42,16 +42,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _proofUrl = widget.user?.proof;
     _userId = widget.user?.id;
     _roleId = widget.user?.role?.roleId;
-    
-    _fullNameController = TextEditingController(text: widget.user?.fullName ?? '');
+
+    _full_nameController =
+        TextEditingController(text: widget.user?.full_name ?? '');
     _emailController = TextEditingController(text: widget.user?.email ?? '');
-    _specialtyController = TextEditingController(text: widget.user?.specialty ?? '');
+    _specialtyController =
+        TextEditingController(text: widget.user?.specialty ?? '');
     _titleController = TextEditingController(text: widget.user?.title ?? '');
   }
 
   @override
   void dispose() {
-    _fullNameController.dispose();
+    _full_nameController.dispose();
     _emailController.dispose();
     _specialtyController.dispose();
     _titleController.dispose();
@@ -67,7 +69,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         maxHeight: 1024,
         imageQuality: 85,
       );
-      
+
       if (image != null) {
         // Check file size (max 5MB)
         final file = File(image.path);
@@ -93,13 +95,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           if (kDebugMode) {
             debugPrint('📤 Avatar upload response: $avatarResponse');
           }
-          
+
           if (avatarResponse['url'] != null) {
             setState(() {
               _avatarUrl = avatarResponse['url'];
               _avatarPath = null; // Clear local path after successful upload
             });
-            
+
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -142,11 +144,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         type: FileType.custom,
         allowedExtensions: ['pdf'],
       );
-      
+
       if (result != null) {
         final file = File(result.files.single.path!);
         final sizeInBytes = await file.length();
-        
+
         // Check file size (max 10MB)
         if (sizeInBytes > 10 * 1024 * 1024) {
           if (mounted) {
@@ -165,17 +167,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         });
 
         try {
-          final proofResponse = await _userService.uploadProof(result.files.single.path!);
+          final proofResponse =
+              await _userService.uploadProof(result.files.single.path!);
           if (kDebugMode) {
             debugPrint('📤 Proof upload response: $proofResponse');
           }
-          
+
           if (proofResponse['url'] != null) {
             setState(() {
               _proofUrl = proofResponse['url'];
               _proofPath = null; // Clear local path after successful upload
             });
-            
+
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -214,16 +217,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       // Prepare user data with the latest URLs
       final updatedUser = User(
         id: _userId!,
-        fullName: _fullNameController.text,
+        full_name: _full_nameController.text,
         email: _emailController.text,
         title: _titleController.text,
         specialty: _specialtyController.text,
@@ -232,14 +235,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         proof: _proofUrl ?? widget.user?.proof ?? '',
         role: widget.user?.role,
       );
-      
+
       if (kDebugMode) {
         debugPrint('📝 Data being sent to API: ${updatedUser.toJson()}');
       }
-      
+
       // Update user profile
-      await _userService.updateUserProfile(_userId!, updatedUser);
-      
+      await _userService.updateUserProfile(_userId!, updatedUser.toJson());
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -300,12 +303,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             backgroundImage: _avatarPath != null
                                 ? FileImage(File(_avatarPath!))
                                 : (_avatarUrl != null && _avatarUrl!.isNotEmpty)
-                                    ? NetworkImage(_avatarUrl!) as ImageProvider<Object>
+                                    ? NetworkImage(_avatarUrl!)
+                                        as ImageProvider<Object>
                                     : null,
-                            child: (_avatarPath == null && (_avatarUrl == null || _avatarUrl!.isEmpty))
+                            child: (_avatarPath == null &&
+                                    (_avatarUrl == null || _avatarUrl!.isEmpty))
                                 ? Text(
-                                    _fullNameController.text.isNotEmpty
-                                        ? _fullNameController.text.substring(0, 1).toUpperCase()
+                                    _full_nameController.text.isNotEmpty
+                                        ? _full_nameController.text
+                                            .substring(0, 1)
+                                            .toUpperCase()
                                         : '?',
                                     style: const TextStyle(fontSize: 32),
                                   )
@@ -334,11 +341,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Form Fields
                     _buildTextField(
                       label: 'Họ và tên',
-                      controller: _fullNameController,
+                      controller: _full_nameController,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Vui lòng nhập họ và tên';
@@ -346,7 +353,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         return null;
                       },
                     ),
-                    
+
                     _buildTextField(
                       label: 'Email',
                       controller: _emailController,
@@ -355,13 +362,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         if (value == null || value.isEmpty) {
                           return 'Vui lòng nhập email';
                         }
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                            .hasMatch(value)) {
                           return 'Email không hợp lệ';
                         }
                         return null;
                       },
                     ),
-                    
+
                     _buildTextField(
                       label: 'Chức danh',
                       controller: _titleController,
@@ -372,7 +380,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         return null;
                       },
                     ),
-                    
+
                     _buildTextField(
                       label: 'Chuyên ngành',
                       controller: _specialtyController,
@@ -383,9 +391,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         return null;
                       },
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Proof File Section
                     const Text(
                       'Giấy tờ chứng minh',
@@ -395,7 +403,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    
+
                     if (_proofUrl != null && _proofUrl!.isNotEmpty) ...[
                       InkWell(
                         onTap: () {
@@ -409,7 +417,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.picture_as_pdf, color: Colors.red),
+                              const Icon(Icons.picture_as_pdf,
+                                  color: Colors.red),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -426,7 +435,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                       const SizedBox(height: 8),
                     ],
-                    
+
                     InkWell(
                       onTap: _pickProofFile,
                       child: Container(
@@ -452,7 +461,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               ),
                             ),
                             Icon(
-                              _proofPath != null ? Icons.upload_file : Icons.add,
+                              _proofPath != null
+                                  ? Icons.upload_file
+                                  : Icons.add,
                               size: 20,
                             ),
                           ],
@@ -467,9 +478,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         color: Colors.grey,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Save Button
                     SizedBox(
                       width: double.infinity,
@@ -514,4 +525,4 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
     );
   }
-} 
+}

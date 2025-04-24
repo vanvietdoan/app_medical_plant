@@ -3,7 +3,7 @@ import 'package:my_app/screens/plants/plant_detail_screen.dart';
 import '../../widgets/custom_bottom_nav.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../home_screen.dart';
-import '../disease/disease_screen.dart';
+import '../disease/disease_detail_screen.dart';
 import '../auth/login_screen.dart';
 import '../profile/expert_profile.dart';
 import '../../services/auth_service.dart';
@@ -358,7 +358,7 @@ class _PlantsScreenState extends State<PlantsScreen> {
                                       ),
                                     ),
                                     title: Text(plant.name),
-                                    subtitle: Text(plant.englishName),
+                                    subtitle: Text(plant.englishName ?? ''),
                                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                                     onTap: () {
                                       Navigator.push(
