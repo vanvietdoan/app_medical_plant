@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:my_app/screens/plants/plant_detail_screen.dart';
 import '../../widgets/custom_bottom_nav.dart';
 import '../../widgets/custom_app_bar.dart';
-import '../home_screen.dart';
-import '../disease/disease_detail_screen.dart';
-import '../auth/login_screen.dart';
-import '../profile/expert_profile.dart';
-import '../../services/auth_service.dart';
 import '../../services/plant_service.dart';
 import '../../models/plant.dart';
 import 'dart:async';
+import '../../services/division_service.dart';
+import '../../models/division.dart';
+import 'package:flutter/foundation.dart';
 
 class PlantsScreen extends StatefulWidget {
   const PlantsScreen({Key? key}) : super(key: key);
@@ -24,29 +22,26 @@ class _PlantsScreenState extends State<PlantsScreen> {
   final ScrollController _scrollController = ScrollController();
 
   List<Plant> _plants = [];
-  List<Plant> _filteredPlants = [];
   bool _isLoading = false;
   bool _hasMore = true;
   int _currentPage = 1;
   static const int _pageSize = 10;
-  bool _isSearching = false;
   Timer? _searchDebounce;
 
-  String? _selectedBranch;
-  String? _selectedClass;
-  String? _selectedOrder;
-  String? _selectedFamily;
-  String? _selectedGenus;
-  String? _selectedSpecies;
+  // Filter states
+  String? _selectedDivision;
   bool _isFilterExpanded = false;
+  bool _isLoadingFilters = false;
+
+  // Filter data
+  List<Division> _divisions = [];
 
   @override
   void initState() {
     super.initState();
     _loadPlants();
+    _loadFilterData();
     _scrollController.addListener(_onScroll);
-    
-    // Add listener for search text changes
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -59,26 +54,9 @@ class _PlantsScreenState extends State<PlantsScreen> {
   }
 
   void _onSearchChanged() {
-    // Cancel previous debounce timer
     _searchDebounce?.cancel();
-    
-    // Set a new debounce timer
     _searchDebounce = Timer(const Duration(milliseconds: 300), () {
-      _filterPlants();
-    });
-  }
-
-  void _filterPlants() {
-    final query = _searchController.text.toLowerCase();
-    setState(() {
-      if (query.isEmpty) {
-        _filteredPlants = _plants;
-      } else {
-        _filteredPlants = _plants.where((plant) {
-          return plant.name.toLowerCase().contains(query) ||
-                 (plant.englishName?.toLowerCase().contains(query) ?? false);
-        }).toList();
-      }
+      _loadPlants(refresh: true);
     });
   }
 
@@ -88,33 +66,38 @@ class _PlantsScreenState extends State<PlantsScreen> {
         _currentPage = 1;
         _hasMore = true;
         _plants = [];
-        _filteredPlants = [];
       });
     }
 
     if (!_hasMore || _isLoading) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      final plants = await _plantService.getPlants(
-        page: _currentPage,
-        limit: _pageSize,
-      );
+      String query = '';
+      if (_searchController.text.isNotEmpty) {
+        query = 'name=${_searchController.text}';
+      } else if (_selectedDivision != null) {
+        query = 'divisionId=${_selectedDivision}';
+      }
+
+      final plants = query.isEmpty
+          ? await _plantService.getPlants(page: _currentPage, limit: _pageSize)
+          : await _plantService
+              .getPlantSearch('$query&page=$_currentPage&limit=$_pageSize');
 
       setState(() {
-        _plants.addAll(plants);
-        _filterPlants(); // Apply current search filter to new plants
+        if (refresh) {
+          _plants = plants;
+        } else {
+          _plants.addAll(plants);
+        }
         _hasMore = plants.length >= _pageSize;
         _currentPage++;
         _isLoading = false;
       });
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Lỗi khi tải danh sách cây: $e')),
@@ -124,12 +107,9 @@ class _PlantsScreenState extends State<PlantsScreen> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
-      if (_searchController.text.isNotEmpty) {
-        _filterPlants();
-      } else {
-        _loadPlants();
-      }
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadPlants();
     }
   }
 
@@ -139,9 +119,50 @@ class _PlantsScreenState extends State<PlantsScreen> {
 
   void _clearSearch() {
     _searchController.clear();
+    _loadPlants(refresh: true);
+  }
+
+  Future<void> _loadFilterData() async {
+    if (_isLoadingFilters) return;
+
+    setState(() => _isLoadingFilters = true);
+
+    try {
+      final divisions = await DivisionService().getDivisions();
+
+      if (kDebugMode) {
+        debugPrint('Loaded divisions: ${divisions.length} items');
+        for (var division in divisions.cast<Division>()) {
+          debugPrint('Division: ${division.name} (${division.divisionId})');
+        }
+      }
+
+      setState(() {
+        _divisions = divisions.cast<Division>();
+        _isLoadingFilters = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingFilters = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi khi tải dữ liệu bộ lọc: $e')),
+        );
+      }
+    }
+  }
+
+  void _handleDivisionChange(String? value) {
     setState(() {
-      _filteredPlants = _plants;
+      _selectedDivision = value;
     });
+    _loadPlants(refresh: true);
+  }
+
+  void _clearDivision() {
+    setState(() {
+      _selectedDivision = null;
+    });
+    _loadPlants(refresh: true);
   }
 
   @override
@@ -186,94 +207,38 @@ class _PlantsScreenState extends State<PlantsScreen> {
                           title: const Text('Bộ lọc tìm kiếm'),
                           initiallyExpanded: _isFilterExpanded,
                           onExpansionChanged: (expanded) {
-                            setState(() {
-                              _isFilterExpanded = expanded;
-                            });
+                            setState(() => _isFilterExpanded = expanded);
                           },
                           children: [
                             Padding(
                               padding: const EdgeInsets.all(16.0),
                               child: Column(
                                 children: [
-                                  _buildDropdown(
-                                    'Ngành',
-                                    _selectedBranch,
-                                    ['Magnoliophyta', 'Pinophyta', 'Polypodiophyta', 'Ginkgophyta', 'Cycadophyta', 'Gnetophyta'],
-                                    (value) {
-                                      setState(() {
-                                        _selectedBranch = value;
-                                        _selectedClass = null;
-                                        _selectedOrder = null;
-                                        _selectedFamily = null;
-                                        _selectedGenus = null;
-                                        _selectedSpecies = null;
-                                      });
-                                    },
-                                  ),
-                                  if (_selectedBranch != null)
-                                    _buildDropdown(
-                                      'Lớp',
-                                      _selectedClass,
-                                      ['Magnoliopsida', 'Liliopsida'],
-                                      (value) {
-                                        setState(() {
-                                          _selectedClass = value;
-                                          _selectedOrder = null;
-                                          _selectedFamily = null;
-                                          _selectedGenus = null;
-                                          _selectedSpecies = null;
-                                        });
-                                      },
-                                    ),
-                                  if (_selectedClass != null)
-                                    _buildDropdown(
-                                      'Bộ',
-                                      _selectedOrder,
-                                      ['Apiales', 'Asterales', 'Fabales'],
-                                      (value) {
-                                        setState(() {
-                                          _selectedOrder = value;
-                                          _selectedFamily = null;
-                                          _selectedGenus = null;
-                                          _selectedSpecies = null;
-                                        });
-                                      },
-                                    ),
-                                  if (_selectedOrder != null)
-                                    _buildDropdown(
-                                      'Họ',
-                                      _selectedFamily,
-                                      ['Araliaceae', 'Apiaceae', 'Asteraceae'],
-                                      (value) {
-                                        setState(() {
-                                          _selectedFamily = value;
-                                          _selectedGenus = null;
-                                          _selectedSpecies = null;
-                                        });
-                                      },
-                                    ),
-                                  if (_selectedFamily != null)
-                                    _buildDropdown(
-                                      'Chi',
-                                      _selectedGenus,
-                                      ['Polyscias', 'Panax', 'Schefflera'],
-                                      (value) {
-                                        setState(() {
-                                          _selectedGenus = value;
-                                          _selectedSpecies = null;
-                                        });
-                                      },
-                                    ),
-                                  if (_selectedGenus != null)
-                                    _buildDropdown(
-                                      'Loài',
-                                      _selectedSpecies,
-                                      ['Polyscias fruticosa', 'Panax vietnamensis', 'Schefflera heptaphylla'],
-                                      (value) {
-                                        setState(() {
-                                          _selectedSpecies = value;
-                                        });
-                                      },
+                                  if (_divisions.isNotEmpty)
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: _buildDropdown(
+                                            'Ngành',
+                                            _selectedDivision,
+                                            _divisions
+                                                .map((d) =>
+                                                    DropdownMenuItem<String>(
+                                                      value: d.divisionId
+                                                          .toString(),
+                                                      child: Text(d.name),
+                                                    ))
+                                                .toList(),
+                                            _handleDivisionChange,
+                                          ),
+                                        ),
+                                        if (_selectedDivision != null)
+                                          IconButton(
+                                            icon: const Icon(Icons.clear),
+                                            onPressed: _clearDivision,
+                                            tooltip: 'Hủy chọn ngành',
+                                          ),
+                                      ],
                                     ),
                                 ],
                               ),
@@ -350,21 +315,42 @@ class _PlantsScreenState extends State<PlantsScreen> {
                                   child: ListTile(
                                     leading: ClipRRect(
                                       borderRadius: BorderRadius.circular(4),
-                                      child: Image.asset(
-                                        'assets/images/plant_placeholder.png',
-                                        width: 60,
-                                        height: 60,
-                                        fit: BoxFit.cover,
-                                      ),
+                                      child: plant.images != null &&
+                                              plant.images!.isNotEmpty
+                                          ? Image.network(
+                                              plant.images![0].url,
+                                              width: 60,
+                                              height: 60,
+                                              fit: BoxFit.cover,
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                return Image.asset(
+                                                  'assets/images/plant_placeholder.png',
+                                                  width: 60,
+                                                  height: 60,
+                                                  fit: BoxFit.cover,
+                                                );
+                                              },
+                                            )
+                                          : Image.asset(
+                                              'assets/images/plant_placeholder.png',
+                                              width: 60,
+                                              height: 60,
+                                              fit: BoxFit.cover,
+                                            ),
                                     ),
                                     title: Text(plant.name),
                                     subtitle: Text(plant.englishName ?? ''),
-                                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                                    trailing: const Icon(
+                                        Icons.arrow_forward_ios,
+                                        size: 16),
                                     onTap: () {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => PlantDetailScreen(plantId: plant.plantId),
+                                          builder: (context) =>
+                                              PlantDetailScreen(
+                                                  plantId: plant.plantId),
                                         ),
                                       );
                                     },
@@ -386,7 +372,21 @@ class _PlantsScreenState extends State<PlantsScreen> {
     );
   }
 
-  Widget _buildDropdown(String label, String? value, List<String> items, Function(String?) onChanged) {
+  Widget _buildDropdown(
+    String label,
+    String? value,
+    List<DropdownMenuItem<String>> items,
+    Function(String?) onChanged,
+  ) {
+    if (kDebugMode) {
+      debugPrint('Building dropdown for $label');
+      debugPrint('Current value: $value');
+      debugPrint('Items count: ${items.length}');
+      for (var item in items) {
+        debugPrint('Item: ${item.value} - ${item.child}');
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -403,16 +403,15 @@ class _PlantsScreenState extends State<PlantsScreen> {
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
           ),
-          items: items.map((item) {
-            return DropdownMenuItem(
-              value: item,
-              child: Text(item),
-            );
-          }).toList(),
+          items: items,
           onChanged: onChanged,
+          isExpanded: true,
+          hint: _isLoadingFilters
+              ? const Text('Đang tải...')
+              : const Text('Chọn'),
         ),
         const SizedBox(height: 16),
       ],
     );
   }
-} 
+}

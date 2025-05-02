@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:my_app/screens/disease/disease_screen.dart';  
+import 'package:my_app/screens/disease/disease_screen.dart';
 import 'package:my_app/screens/plants/plants_screen.dart';
 import 'package:my_app/screens/plants/plant_detail_screen.dart';
 import 'package:my_app/screens/profile/expert_profile.dart';
@@ -35,18 +35,21 @@ class HomeScreenState extends State<HomeScreen> {
       setState(() {
         // Sort by creation date for recent plants
         _recentPlants = List.from(plants)
-          ..sort((a, b) => b.createdAt?.compareTo(a.createdAt ?? DateTime.now()) ?? 0);
+          ..sort((a, b) =>
+              b.createdAt?.compareTo(a.createdAt ?? DateTime.now()) ?? 0);
         _recentPlants = _recentPlants.take(10).toList();
 
         // Sort by benefits length for most beneficial plants
         _mostBeneficialPlants = List.from(plants)
-          ..sort((a, b) => b.benefits?.length.compareTo(a.benefits?.length ?? 0) ?? 0);
+          ..sort((a, b) =>
+              b.benefits?.length.compareTo(a.benefits?.length ?? 0) ?? 0);
         _mostBeneficialPlants = _mostBeneficialPlants.take(10).toList();
 
         // Sort by description length for featured plants
         _featuredPlants = List.from(plants)
-            ..sort((a, b) => b.description?.length.compareTo(a.description?.length ?? 0) ?? 0);
-          _featuredPlants = _featuredPlants.take(10).toList();
+          ..sort((a, b) =>
+              b.description?.length.compareTo(a.description?.length ?? 0) ?? 0);
+        _featuredPlants = _featuredPlants.take(10).toList();
 
         _isLoading = false;
       });
@@ -156,12 +159,27 @@ class HomeScreenState extends State<HomeScreen> {
         },
         child: Column(
           children: [
-            Image.asset(
-              'assets/images/sam.png',
-              height: 120,
-              width: 150,
-              fit: BoxFit.cover,
-            ),
+            plant.images != null && plant.images!.isNotEmpty
+                ? Image.network(
+                    plant.images![0].url,
+                    height: 120,
+                    width: 150,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Image.asset(
+                        'assets/images/sam.png',
+                        height: 120,
+                        width: 150,
+                        fit: BoxFit.cover,
+                      );
+                    },
+                  )
+                : Image.asset(
+                    'assets/images/sam.png',
+                    height: 120,
+                    width: 150,
+                    fit: BoxFit.cover,
+                  ),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Column(

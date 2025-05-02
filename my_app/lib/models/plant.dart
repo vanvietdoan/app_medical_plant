@@ -1,3 +1,25 @@
+class PlantImage {
+  final int pictureId;
+  final String url;
+
+  PlantImage({
+    required this.pictureId,
+    required this.url,
+  });
+
+  factory PlantImage.fromJson(Map<String, dynamic> json) {
+    return PlantImage(
+      pictureId: json['picture_id'] ?? 0,
+      url: json['url']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'picture_id': pictureId,
+        'url': url,
+      };
+}
+
 class Plant {
   final int plantId;
   final String name;
@@ -8,6 +30,7 @@ class Plant {
   final int? speciesId;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final List<PlantImage>? images;
 
   Plant({
     required this.plantId,
@@ -19,6 +42,7 @@ class Plant {
     this.speciesId,
     this.createdAt,
     this.updatedAt,
+    this.images,
   });
 
   factory Plant.fromJson(Map<String, dynamic> json) {
@@ -36,6 +60,9 @@ class Plant {
       updatedAt: json['updated_at'] != null
           ? DateTime.tryParse(json['updated_at'])
           : null,
+      images: json['images'] != null
+          ? (json['images'] as List).map((e) => PlantImage.fromJson(e)).toList()
+          : null,
     );
   }
 
@@ -49,5 +76,6 @@ class Plant {
         if (speciesId != null) 'species_id': speciesId,
         if (createdAt != null) 'created_at': createdAt?.toIso8601String(),
         if (updatedAt != null) 'updated_at': updatedAt?.toIso8601String(),
+        if (images != null) 'images': images!.map((e) => e.toJson()).toList(),
       };
 }
