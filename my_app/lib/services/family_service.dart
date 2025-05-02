@@ -9,37 +9,20 @@ class FamilyService {
 
   final BaseApiService _apiService = BaseApiService();
 
-  Future<List<Family>> getFamilies({int page = 1, int limit = 10}) async {
+  /// Get list of families
+  Future<List<Family>> getFamilies() async {
     try {
-      if (kDebugMode) {
-        debugPrint('Fetching families with page=$page, limit=$limit');
-      }
-
-      final response = await _apiService.get<dynamic>(
-        '/families?page=$page&limit=$limit',
-      );
-
-      if (kDebugMode) {
-        debugPrint('Raw family response: $response');
-        debugPrint('Response type: ${response.runtimeType}');
-      }
-
+      final response = await _apiService.get<dynamic>('/family');
       List<dynamic> familiesJson;
-      if (response is List<dynamic>) {
-        familiesJson = response;
+      if (response is Map<String, dynamic>) {
+        familiesJson = response['data'] as List<dynamic>;
       } else {
-        throw Exception('Unexpected response type: ${response.runtimeType}');
+        familiesJson = response as List<dynamic>;
       }
-
-      if (kDebugMode) {
-        debugPrint('Processed families: ${familiesJson.length} items');
-      }
-
       return familiesJson.map((json) => Family.fromJson(json)).toList();
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ Error fetching families: $e');
-        debugPrint('Stack trace: ${StackTrace.current}');
+        debugPrint('❌ Lỗi lấy danh sách họ: $e');
       }
       rethrow;
     }
@@ -47,26 +30,14 @@ class FamilyService {
 
   Future<Family> getFamilyById(int id) async {
     try {
-      if (kDebugMode) {
-        debugPrint('Fetching family with id: $id');
-      }
-
-      final response = await _apiService.get<dynamic>('/families/$id');
-
-      if (kDebugMode) {
-        debugPrint('Raw family detail response: $response');
-        debugPrint('Response type: ${response.runtimeType}');
-      }
-
+      final response = await _apiService.get<dynamic>('/family/$id');
       if (response is Map<String, dynamic>) {
-        return Family.fromJson(response);
-      } else {
-        throw Exception('Unexpected response type: ${response.runtimeType}');
+        return Family.fromJson(response['data']);
       }
+      return Family.fromJson(response);
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ Error fetching family detail: $e');
-        debugPrint('Stack trace: ${StackTrace.current}');
+        debugPrint('❌ Lỗi lấy thông tin họ: $e');
       }
       rethrow;
     }

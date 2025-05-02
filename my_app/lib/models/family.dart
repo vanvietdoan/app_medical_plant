@@ -4,7 +4,7 @@ class Family {
   final int familyId;
   final String name;
   final int orderId;
-  final Order order;
+  final Order? order;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -12,7 +12,7 @@ class Family {
     required this.familyId,
     required this.name,
     required this.orderId,
-    required this.order,
+    this.order,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -22,7 +22,9 @@ class Family {
       familyId: json['family_id'] as int,
       name: json['name'] as String,
       orderId: json['order_id'] as int,
-      order: Order.fromJson(json['order'] as Map<String, dynamic>),
+      order: json['order'] != null
+          ? Order.fromJson(json['order'] as Map<String, dynamic>)
+          : null,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -33,7 +35,7 @@ class Family {
       'family_id': familyId,
       'name': name,
       'order_id': orderId,
-      'order': order.toJson(),
+      'order': order?.toJson(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -41,8 +43,8 @@ class Family {
 }
 
 class FamilyResponse {
-  final String createdAt;
-  final String updatedAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
   final int familyId;
   final String name;
   final int orderId;
@@ -57,8 +59,8 @@ class FamilyResponse {
 
   factory FamilyResponse.fromJson(Map<String, dynamic> json) {
     return FamilyResponse(
-      createdAt: json['created_at'],
-      updatedAt: json['updated_at'],
+      createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
       familyId: json['family_id'],
       name: json['name'],
       orderId: json['order_id'],
@@ -67,8 +69,8 @@ class FamilyResponse {
 
   Map<String, dynamic> toJson() {
     return {
-      'created_at': createdAt,
-      'updated_at': updatedAt,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
       'family_id': familyId,
       'name': name,
       'order_id': orderId,

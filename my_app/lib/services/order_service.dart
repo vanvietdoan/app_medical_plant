@@ -9,11 +9,10 @@ class OrderService {
 
   final BaseApiService _apiService = BaseApiService();
 
-  Future<List<Order>> getOrders({int page = 1, int limit = 10}) async {
+  /// Get list of orders
+  Future<List<Order>> getOrders() async {
     try {
-      final response = await _apiService.get<dynamic>(
-        '/orders?page=$page&limit=$limit',
-      );
+      final response = await _apiService.get<dynamic>('/orders');
       List<dynamic> ordersJson;
       if (response is Map<String, dynamic>) {
         ordersJson = response['data'] as List<dynamic>;

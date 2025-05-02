@@ -9,11 +9,10 @@ class ClassService {
 
   final BaseApiService _apiService = BaseApiService();
 
-  Future<List<Class>> getClasses({int page = 1, int limit = 10}) async {
+  /// Get list of classes
+  Future<List<Class>> getClasses() async {
     try {
-      final response = await _apiService.get<dynamic>(
-        '/classes?page=$page&limit=$limit',
-      );
+      final response = await _apiService.get<dynamic>('/classes');
       List<dynamic> classesJson;
       if (response is Map<String, dynamic>) {
         classesJson = response['data'] as List<dynamic>;

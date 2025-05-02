@@ -12,7 +12,7 @@ class GenusService {
   Future<List<Genus>> getGenuses({int page = 1, int limit = 10}) async {
     try {
       final response = await _apiService.get<dynamic>(
-        '/genera?page=$page&limit=$limit',
+        '/genus?page=$page&limit=$limit',
       );
       List<dynamic> generaJson;
       if (response is Map<String, dynamic>) {
@@ -31,7 +31,7 @@ class GenusService {
 
   Future<Genus> getGenusById(int id) async {
     try {
-      final response = await _apiService.get<dynamic>('/genera/$id');
+      final response = await _apiService.get<dynamic>('/genus/$id');
       if (response is Map<String, dynamic>) {
         return Genus.fromJson(response['data']);
       }
