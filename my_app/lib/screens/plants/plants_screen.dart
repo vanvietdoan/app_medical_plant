@@ -33,27 +33,30 @@ class _PlantsScreenState extends State<PlantsScreen> {
 
   List<Plant> _plants = [];
   List<Plant> _allPlants = [];
-  List<Class> _Class = [];
   bool _isLoading = false;
   Timer? _searchDebounce;
 
   // Filter states
-  String? _selectedDivision;
-  String? _selectedClass;
-  String? _selectedOrder;
-  String? _selectedFamily;
-  String? _selectedGenus;
-  String? _selectedSpecies;
+  final Map<String, String?> _selectedFilters = {
+    'division': null,
+    'class': null,
+    'order': null,
+    'family': null,
+    'genus': null,
+    'species': null,
+  };
   bool _isFilterExpanded = false;
   bool _isLoadingFilters = false;
 
   // Filter data
-  List<Division> _divisions = [];
-  List<Class> _classes = [];
-  List<Order> _orders = [];
-  List<Family> _families = [];
-  List<Genus> _genera = [];
-  List<Species> _species = [];
+  final Map<String, List<dynamic>> _filterData = {
+    'divisions': [],
+    'classes': [],
+    'orders': [],
+    'families': [],
+    'genera': [],
+    'species': [],
+  };
 
   @override
   void initState() {
@@ -71,13 +74,8 @@ class _PlantsScreenState extends State<PlantsScreen> {
   }
 
   void _onSearchChanged() {
-    // Cancel previous debounce timer
     _searchDebounce?.cancel();
-
-    // Set a new debounce timer
-    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
-      _filterPlants();
-    });
+    _searchDebounce = Timer(const Duration(milliseconds: 300), _filterPlants);
   }
 
   void _clearSearch() {
@@ -104,26 +102,7 @@ class _PlantsScreenState extends State<PlantsScreen> {
     setState(() => _isLoading = true);
 
     try {
-      String query = '';
-      if (_selectedDivision != null) {
-        query = 'divisionId=${_selectedDivision}';
-        if (_selectedClass != null) {
-          query += '&classId=${_selectedClass}';
-        }
-        if (_selectedOrder != null) {
-          query += '&orderId=${_selectedOrder}';
-        }
-        if (_selectedFamily != null) {
-          query += '&familyId=${_selectedFamily}';
-        }
-        if (_selectedGenus != null) {
-          query += '&genusId=${_selectedGenus}';
-        }
-        if (_selectedSpecies != null) {
-          query += '&speciesId=${_selectedSpecies}';
-        }
-      }
-
+      final query = _buildFilterQuery();
       final plants = query.isEmpty
           ? await _plantService.getPlants()
           : await _plantService.getPlantSearch(query);
@@ -141,6 +120,14 @@ class _PlantsScreenState extends State<PlantsScreen> {
         );
       }
     }
+  }
+
+  String _buildFilterQuery() {
+    final filters = _selectedFilters.entries
+        .where((entry) => entry.value != null)
+        .map((entry) => '${entry.key}Id=${entry.value}')
+        .join('&');
+    return filters;
   }
 
   Future<void> _onRefresh() async {
@@ -166,10 +153,10 @@ class _PlantsScreenState extends State<PlantsScreen> {
       }
 
       setState(() {
-        _divisions = divisions.cast<Division>();
-        _classes = classes.cast<Class>();
-        _orders = orders.cast<Order>();
-        _families = families.cast<Family>();
+        _filterData['divisions'] = divisions;
+        _filterData['classes'] = classes;
+        _filterData['orders'] = orders;
+        _filterData['families'] = families;
         _isLoadingFilters = false;
       });
     } catch (e) {
@@ -186,7 +173,8 @@ class _PlantsScreenState extends State<PlantsScreen> {
     try {
       final genera = await GenusService().getGenuses();
       setState(() {
-        _genera = genera.where((genus) => genus.familyId == familyId).toList();
+        _filterData['genera'] =
+            genera.where((genus) => genus.familyId == familyId).toList();
       });
     } catch (e) {
       if (mounted) {
@@ -201,7 +189,8 @@ class _PlantsScreenState extends State<PlantsScreen> {
     try {
       final species = await SpeciesService().getSpecies();
       setState(() {
-        _species = species.where((s) => s.genusId == genusId).toList();
+        _filterData['species'] =
+            species.where((s) => s.genusId == genusId).toList();
       });
     } catch (e) {
       if (mounted) {
@@ -212,129 +201,363 @@ class _PlantsScreenState extends State<PlantsScreen> {
     }
   }
 
-  void _handleDivisionChange(String? value) {
+  void _handleFilterChange(String filterType, String? value) {
     setState(() {
-      _selectedDivision = value;
-      _selectedClass = null; // Reset class when division changes
-      _selectedOrder = null; // Reset order when division changes
-      _selectedFamily = null; // Reset family when division changes
+      _selectedFilters[filterType] = value;
+
+      // Reset dependent filters
+      switch (filterType) {
+        case 'division':
+          _selectedFilters['class'] = null;
+          _selectedFilters['order'] = null;
+          _selectedFilters['family'] = null;
+          _selectedFilters['genus'] = null;
+          _selectedFilters['species'] = null;
+          break;
+        case 'class':
+          _selectedFilters['order'] = null;
+          _selectedFilters['family'] = null;
+          _selectedFilters['genus'] = null;
+          _selectedFilters['species'] = null;
+          break;
+        case 'order':
+          _selectedFilters['family'] = null;
+          _selectedFilters['genus'] = null;
+          _selectedFilters['species'] = null;
+          break;
+        case 'family':
+          _selectedFilters['genus'] = null;
+          _selectedFilters['species'] = null;
+          _filterData['genera'] = [];
+          if (value != null) {
+            _loadGeneraByFamily(int.parse(value));
+          }
+          break;
+        case 'genus':
+          _selectedFilters['species'] = null;
+          _filterData['species'] = [];
+          if (value != null) {
+            _loadSpeciesByGenus(int.parse(value));
+          }
+          break;
+      }
     });
     _loadPlants();
   }
 
-  void _handleClassChange(String? value) {
+  void _clearFilter(String filterType) {
     setState(() {
-      _selectedClass = value;
-      _selectedOrder = null; // Reset order when class changes
-      _selectedFamily = null; // Reset family when class changes
+      _selectedFilters[filterType] = null;
+      // Clear dependent filters
+      switch (filterType) {
+        case 'division':
+          _selectedFilters['class'] = null;
+          _selectedFilters['order'] = null;
+          _selectedFilters['family'] = null;
+          _selectedFilters['genus'] = null;
+          _selectedFilters['species'] = null;
+          break;
+        case 'class':
+          _selectedFilters['order'] = null;
+          _selectedFilters['family'] = null;
+          _selectedFilters['genus'] = null;
+          _selectedFilters['species'] = null;
+          break;
+        case 'order':
+          _selectedFilters['family'] = null;
+          _selectedFilters['genus'] = null;
+          _selectedFilters['species'] = null;
+          break;
+        case 'family':
+          _selectedFilters['genus'] = null;
+          _selectedFilters['species'] = null;
+          _filterData['genera'] = [];
+          break;
+        case 'genus':
+          _selectedFilters['species'] = null;
+          _filterData['species'] = [];
+          break;
+      }
     });
     _loadPlants();
   }
 
-  void _handleOrderChange(String? value) {
-    setState(() {
-      _selectedOrder = value;
-      _selectedFamily = null; // Reset family when order changes
-    });
-    _loadPlants();
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: CustomAppBar(),
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SearchAndFilterCard(
+              searchController: _searchController,
+              isFilterExpanded: _isFilterExpanded,
+              onFilterToggle: () =>
+                  setState(() => _isFilterExpanded = !_isFilterExpanded),
+              onClearSearch: _clearSearch,
+              filterContent: _isFilterExpanded
+                  ? FilterContent(
+                      filterData: _filterData,
+                      selectedFilters: _selectedFilters,
+                      isLoadingFilters: _isLoadingFilters,
+                      onFilterChange: _handleFilterChange,
+                      onClearFilter: _clearFilter,
+                    )
+                  : null,
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _onRefresh,
+                child: PlantsGrid(
+                  plants: _plants,
+                  isLoading: _isLoading,
+                  searchText: _searchController.text,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: const CustomBottomNav(
+        currentIndex: 1,
+      ),
+    );
   }
+}
 
-  void _handleFamilyChange(String? value) {
-    setState(() {
-      _selectedFamily = value;
-      _selectedGenus = null; // Reset genus when family changes
-      _genera = []; // Clear genera list
-    });
-    if (value != null) {
-      _loadGeneraByFamily(int.parse(value));
-    }
-    _loadPlants();
+class SearchAndFilterCard extends StatelessWidget {
+  final TextEditingController searchController;
+  final bool isFilterExpanded;
+  final VoidCallback onFilterToggle;
+  final VoidCallback onClearSearch;
+  final Widget? filterContent;
+
+  const SearchAndFilterCard({
+    super.key,
+    required this.searchController,
+    required this.isFilterExpanded,
+    required this.onFilterToggle,
+    required this.onClearSearch,
+    this.filterContent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.all(16.0),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Tìm kiếm cây thuốc....',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: onClearSearch,
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: Icon(
+                    isFilterExpanded
+                        ? Icons.filter_list_off
+                        : Icons.filter_list,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                  onPressed: onFilterToggle,
+                  tooltip: isFilterExpanded ? 'Ẩn bộ lọc' : 'Hiện bộ lọc',
+                ),
+              ],
+            ),
+          ),
+          if (isFilterExpanded) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: filterContent,
+            ),
+          ],
+        ],
+      ),
+    );
   }
+}
 
-  void _handleGenusChange(String? value) {
-    setState(() {
-      _selectedGenus = value;
-      _selectedSpecies = null; // Reset species when genus changes
-      _species = []; // Clear species list
-    });
-    if (value != null) {
-      _loadSpeciesByGenus(int.parse(value));
-    }
-    _loadPlants();
-  }
+class FilterContent extends StatelessWidget {
+  final Map<String, List<dynamic>> filterData;
+  final Map<String, String?> selectedFilters;
+  final bool isLoadingFilters;
+  final Function(String, String?) onFilterChange;
+  final Function(String) onClearFilter;
 
-  void _handleSpeciesChange(String? value) {
-    setState(() {
-      _selectedSpecies = value;
-    });
-    _loadPlants();
-  }
+  const FilterContent({
+    super.key,
+    required this.filterData,
+    required this.selectedFilters,
+    required this.isLoadingFilters,
+    required this.onFilterChange,
+    required this.onClearFilter,
+  });
 
-  void _clearDivision() {
-    setState(() {
-      _selectedDivision = null;
-      _selectedClass = null;
-      _selectedOrder = null;
-      _selectedFamily = null;
-      _selectedGenus = null;
-      _selectedSpecies = null;
-    });
-    _loadPlants();
-  }
-
-  void _clearClass() {
-    setState(() {
-      _selectedClass = null;
-      _selectedOrder = null;
-      _selectedFamily = null;
-      _selectedGenus = null;
-      _selectedSpecies = null;
-    });
-    _loadPlants();
-  }
-
-  void _clearOrder() {
-    setState(() {
-      _selectedOrder = null;
-      _selectedFamily = null;
-      _selectedGenus = null;
-      _selectedSpecies = null;
-    });
-    _loadPlants();
-  }
-
-  void _clearFamily() {
-    setState(() {
-      _selectedFamily = null;
-      _selectedGenus = null;
-      _selectedSpecies = null;
-    });
-    _loadPlants();
-  }
-
-  void _clearGenus() {
-    setState(() {
-      _selectedGenus = null;
-      _selectedSpecies = null;
-    });
-    _loadPlants();
-  }
-
-  void _clearSpecies() {
-    setState(() {
-      _selectedSpecies = null;
-    });
-    _loadPlants();
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildFilterDropdown(
+                'division',
+                'Ngành',
+                filterData['divisions'] as List<Division>,
+                selectedFilters['division'],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildFilterDropdown(
+                'class',
+                'Lớp',
+                filterData['classes'] as List<Class>,
+                selectedFilters['class'],
+                parentValue: selectedFilters['division'],
+                parentField: 'divisionId',
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildFilterDropdown(
+                'order',
+                'Bộ',
+                filterData['orders'] as List<Order>,
+                selectedFilters['order'],
+                parentValue: selectedFilters['class'],
+                parentField: 'classId',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildFilterDropdown(
+                'family',
+                'Họ',
+                filterData['families'] as List<Family>,
+                selectedFilters['family'],
+                parentValue: selectedFilters['order'],
+                parentField: 'orderId',
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildFilterDropdown(
+                'genus',
+                'Chi',
+                filterData['genera'] as List<Genus>,
+                selectedFilters['genus'],
+                parentValue: selectedFilters['family'],
+                parentField: 'familyId',
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildFilterDropdown(
+                'species',
+                'Loài',
+                filterData['species'] as List<Species>,
+                selectedFilters['species'],
+                parentValue: selectedFilters['genus'],
+                parentField: 'genusId',
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   Widget _buildFilterDropdown(
+    String filterType,
     String label,
-    String? value,
-    List<DropdownMenuItem<String>> items,
-    Function(String?) onChanged,
-    VoidCallback onClear,
-    bool isLoading,
-  ) {
+    List<dynamic> items,
+    String? selectedValue, {
+    String? parentValue,
+    String? parentField,
+  }) {
+    if (items.isEmpty || (parentValue != null && parentValue.isEmpty)) {
+      return const SizedBox();
+    }
+
+    final filteredItems = parentValue != null && parentField != null
+        ? items
+            .where(
+                (item) => item.toJson()[parentField].toString() == parentValue)
+            .toList()
+        : items;
+
+    if (filteredItems.isEmpty) {
+      return const SizedBox();
+    }
+
+    return FilterDropdown(
+      label: label,
+      value: selectedValue,
+      items: filteredItems
+          .map((item) => DropdownMenuItem<String>(
+                value: item.toJson()['${filterType}Id'].toString(),
+                child: Text(item.toJson()['name']),
+              ))
+          .toList(),
+      onChanged: (value) => onFilterChange(filterType, value),
+      onClear: () => onClearFilter(filterType),
+      isLoading: isLoadingFilters,
+    );
+  }
+}
+
+class FilterDropdown extends StatelessWidget {
+  final String label;
+  final String? value;
+  final List<DropdownMenuItem<String>> items;
+  final Function(String?) onChanged;
+  final VoidCallback onClear;
+  final bool isLoading;
+
+  const FilterDropdown({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+    required this.onClear,
+    required this.isLoading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       child: Column(
@@ -409,373 +632,176 @@ class _PlantsScreenState extends State<PlantsScreen> {
       ),
     );
   }
+}
+
+class PlantsGrid extends StatelessWidget {
+  final List<Plant> plants;
+  final bool isLoading;
+  final String searchText;
+
+  const PlantsGrid({
+    super.key,
+    required this.plants,
+    required this.isLoading,
+    required this.searchText,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: CustomAppBar(),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Card(
-              margin: const EdgeInsets.all(16.0),
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Danh sách cây thuốc',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            decoration: InputDecoration(
-                              hintText: 'Tìm kiếm cây thuốc....',
-                              prefixIcon: const Icon(Icons.search),
-                              suffixIcon: _searchController.text.isNotEmpty
-                                  ? IconButton(
-                                      icon: const Icon(Icons.clear),
-                                      onPressed: _clearSearch,
-                                    )
-                                  : null,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                              contentPadding:
-                                  const EdgeInsets.symmetric(vertical: 0),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: Icon(
-                            _isFilterExpanded
-                                ? Icons.filter_list_off
-                                : Icons.filter_list,
-                            color: Theme.of(context).primaryColor,
-                          ),
-                          onPressed: () {
-                            setState(
-                                () => _isFilterExpanded = !_isFilterExpanded);
-                          },
-                          tooltip:
-                              _isFilterExpanded ? 'Ẩn bộ lọc' : 'Hiện bộ lọc',
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_isFilterExpanded) ...[
-                    const Divider(height: 1),
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        children: [
-                          // First row: Ngành, Lớp, Bộ
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: _divisions.isNotEmpty
-                                    ? _buildFilterDropdown(
-                                        'Ngành',
-                                        _selectedDivision,
-                                        _divisions
-                                            .map(
-                                                (d) => DropdownMenuItem<String>(
-                                                      value: d.divisionId
-                                                          .toString(),
-                                                      child: Text(d.name),
-                                                    ))
-                                            .toList(),
-                                        _handleDivisionChange,
-                                        _clearDivision,
-                                        _isLoadingFilters,
-                                      )
-                                    : const SizedBox(),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: _selectedDivision != null &&
-                                        _classes.isNotEmpty
-                                    ? _buildFilterDropdown(
-                                        'Lớp',
-                                        _selectedClass,
-                                        _classes
-                                            .where((c) =>
-                                                c.divisionId.toString() ==
-                                                _selectedDivision)
-                                            .map((c) =>
-                                                DropdownMenuItem<String>(
-                                                  value: c.classId.toString(),
-                                                  child: Text(c.name),
-                                                ))
-                                            .toList(),
-                                        _handleClassChange,
-                                        _clearClass,
-                                        _isLoadingFilters,
-                                      )
-                                    : const SizedBox(),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: _selectedClass != null &&
-                                        _orders.isNotEmpty
-                                    ? _buildFilterDropdown(
-                                        'Bộ',
-                                        _selectedOrder,
-                                        _orders
-                                            .where((o) =>
-                                                o.classId.toString() ==
-                                                _selectedClass)
-                                            .map((o) =>
-                                                DropdownMenuItem<String>(
-                                                  value: o.orderId.toString(),
-                                                  child: Text(o.name),
-                                                ))
-                                            .toList(),
-                                        _handleOrderChange,
-                                        _clearOrder,
-                                        _isLoadingFilters,
-                                      )
-                                    : const SizedBox(),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          // Second row: Họ, Chi, Loài
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: _selectedOrder != null &&
-                                        _families.isNotEmpty
-                                    ? _buildFilterDropdown(
-                                        'Họ',
-                                        _selectedFamily,
-                                        _families
-                                            .where((f) =>
-                                                f.orderId.toString() ==
-                                                _selectedOrder)
-                                            .map((f) =>
-                                                DropdownMenuItem<String>(
-                                                  value: f.familyId.toString(),
-                                                  child: Text(f.name),
-                                                ))
-                                            .toList(),
-                                        _handleFamilyChange,
-                                        _clearFamily,
-                                        _isLoadingFilters,
-                                      )
-                                    : const SizedBox(),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: _selectedFamily != null &&
-                                        _genera.isNotEmpty
-                                    ? _buildFilterDropdown(
-                                        'Chi',
-                                        _selectedGenus,
-                                        _genera
-                                            .map((g) =>
-                                                DropdownMenuItem<String>(
-                                                  value: g.genusId.toString(),
-                                                  child: Text(g.name),
-                                                ))
-                                            .toList(),
-                                        _handleGenusChange,
-                                        _clearGenus,
-                                        _isLoadingFilters,
-                                      )
-                                    : const SizedBox(),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: _selectedGenus != null &&
-                                        _species.isNotEmpty
-                                    ? _buildFilterDropdown(
-                                        'Loài',
-                                        _selectedSpecies,
-                                        _species
-                                            .map((s) =>
-                                                DropdownMenuItem<String>(
-                                                  value: s.speciesId.toString(),
-                                                  child: Text(s.name),
-                                                ))
-                                            .toList(),
-                                        _handleSpeciesChange,
-                                        _clearSpecies,
-                                        _isLoadingFilters,
-                                      )
-                                    : const SizedBox(),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _onRefresh,
-                child: SingleChildScrollView(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Danh sách cây thuốc',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          if (_searchController.text.isNotEmpty)
-                            Text(
-                              'Kết quả tìm kiếm: "${_searchController.text}"',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      _plants.isEmpty && !_isLoading
-                          ? Center(
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(
-                                      Icons.search_off,
-                                      size: 48,
-                                      color: Colors.grey,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      _searchController.text.isNotEmpty
-                                          ? 'Không tìm thấy cây thuốc nào với từ khóa "${_searchController.text}"'
-                                          : 'Không tìm thấy cây thuốc nào',
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            )
-                          : GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 3,
-                                childAspectRatio: 0.75,
-                                crossAxisSpacing: 8,
-                                mainAxisSpacing: 8,
-                              ),
-                              itemCount: _plants.length,
-                              itemBuilder: (context, index) {
-                                final plant = _plants[index];
-                                return Card(
-                                  margin: EdgeInsets.zero,
-                                  child: InkWell(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              PlantDetailScreen(
-                                                  plantId: plant.plantId),
-                                        ),
-                                      );
-                                    },
-                                    child: Column(
-                                      children: [
-                                        Expanded(
-                                          child: plant.images != null &&
-                                                  plant.images!.isNotEmpty
-                                              ? Image.network(
-                                                  plant.images![0].url,
-                                                  height: double.infinity,
-                                                  width: double.infinity,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (context, error,
-                                                      stackTrace) {
-                                                    return Image.asset(
-                                                      'assets/images/plant_placeholder.png',
-                                                      height: double.infinity,
-                                                      width: double.infinity,
-                                                      fit: BoxFit.cover,
-                                                    );
-                                                  },
-                                                )
-                                              : Image.asset(
-                                                  'assets/images/plant_placeholder.png',
-                                                  height: double.infinity,
-                                                  width: double.infinity,
-                                                  fit: BoxFit.cover,
-                                                ),
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Column(
-                                            children: [
-                                              Text(
-                                                plant.name,
-                                                style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 12),
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                                textAlign: TextAlign.center,
-                                              ),
-                                              if (plant.englishName != null &&
-                                                  plant.englishName!.isNotEmpty)
-                                                Text(
-                                                  plant.englishName!,
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    color: Colors.grey[600],
-                                                  ),
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  textAlign: TextAlign.center,
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                    ],
+              if (searchText.isNotEmpty)
+                Text(
+                  'Kết quả tìm kiếm: "$searchText"',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
                   ),
                 ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          plants.isEmpty && !isLoading
+              ? const EmptyState()
+              : GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    childAspectRatio: 0.75,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                  ),
+                  itemCount: plants.length,
+                  itemBuilder: (context, index) {
+                    return PlantCard(plant: plants[index]);
+                  },
+                ),
+        ],
+      ),
+    );
+  }
+}
+
+class EmptyState extends StatelessWidget {
+  const EmptyState({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.search_off,
+              size: 48,
+              color: Colors.grey,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Không tìm thấy cây thuốc nào',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
               ),
             ),
           ],
         ),
       ),
-      bottomNavigationBar: const CustomBottomNav(
-        currentIndex: 1,
+    );
+  }
+}
+
+class PlantCard extends StatelessWidget {
+  final Plant plant;
+
+  const PlantCard({super.key, required this.plant});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PlantDetailScreen(plantId: plant.plantId),
+            ),
+          );
+        },
+        child: Column(
+          children: [
+            Expanded(
+              child: plant.images != null && plant.images!.isNotEmpty
+                  ? Image.network(
+                      plant.images![0].url,
+                      height: double.infinity,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Image.asset(
+                          'assets/images/plant_placeholder.png',
+                          height: double.infinity,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        );
+                      },
+                    )
+                  : Image.asset(
+                      'assets/images/plant_placeholder.png',
+                      height: double.infinity,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                children: [
+                  Text(
+                    plant.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
+                  if (plant.englishName != null &&
+                      plant.englishName!.isNotEmpty)
+                    Text(
+                      plant.englishName!,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey[600],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

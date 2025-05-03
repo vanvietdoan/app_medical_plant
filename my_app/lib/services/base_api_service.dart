@@ -4,8 +4,7 @@ import 'package:flutter/foundation.dart';
 
 class BaseApiService {
   //static const String baseUrl = 'http://157.20.58.220:2204/api';
-  static const String baseUrl = 'http://localhost:2204/api';  
-
+  static const String baseUrl = 'http://localhost:2204/api';
 
   static const Duration timeout = Duration(seconds: 30);
 
@@ -44,7 +43,7 @@ class BaseApiService {
   // Generic GET method
   Future<T> get<T>(String endpoint, {Map<String, String>? headers}) async {
     if (kDebugMode) {
-      debugPrint('🌐 GET: $baseUrl$endpoint');
+      debugPrint('🌐 GET ${endpoint} : $baseUrl$endpoint');
     }
 
     try {
@@ -56,7 +55,7 @@ class BaseApiService {
       if (kDebugMode) {
         debugPrint('📥 Response status: ${response.statusCode}');
 
-        debugPrint('📦 Response ${endpoint} body:  ${response.body}');
+       // debugPrint('📦 Response ${endpoint} body:  ${response.body}');
       }
 
       if (response.statusCode == 200) {
@@ -74,22 +73,25 @@ class BaseApiService {
   }
 
   // Generic POST method
-  Future<T> post<T>(String endpoint, dynamic data, {Map<String, String>? headers}) async {
+  Future<T> post<T>(String endpoint, dynamic data,
+      {Map<String, String>? headers}) async {
     if (kDebugMode) {
       debugPrint('🌐 POST: $baseUrl$endpoint');
       debugPrint('📤 Request data: $data');
     }
 
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: {..._headers(), ...?headers},
-        body: json.encode(data),
-      ).timeout(timeout);
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl$endpoint'),
+            headers: {..._headers(), ...?headers},
+            body: json.encode(data),
+          )
+          .timeout(timeout);
 
       if (kDebugMode) {
-        debugPrint('📥 Response status: ${response.statusCode}');
-        debugPrint('📦 Response body: ${response.body}');
+        debugPrint('📥 Response ${endpoint} status: ${response.statusCode}');
+        // debugPrint('📦 Response ${endpoint} body: ${response.body}');
       }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -98,62 +100,101 @@ class BaseApiService {
         }
         final data = json.decode(response.body);
         if (data == null) {
-          throw Exception('Null response data');
+          throw Exception('Null ${endpoint} response data');
         }
         return data as T;
       } else {
         final errorBody = json.decode(response.body);
-        throw Exception(errorBody['message'] ?? 'Failed to post data: ${response.statusCode}');
+        throw Exception(errorBody['message'] ??
+            'Failed to post data: ${response.statusCode}');
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ Error: $e');
+        debugPrint('❌ Error ${endpoint} : $e');
       }
       rethrow;
     }
   }
 
   // Generic PUT method
-  Future<T> put<T>(String endpoint, dynamic data, {Map<String, String>? headers}) async {
+  Future<T> put<T>(String endpoint, dynamic data,
+      {Map<String, String>? headers}) async {
     if (kDebugMode) {
-      debugPrint('🌐 PUT: $baseUrl$endpoint');
-      debugPrint('📤 Request data: $data');
+      debugPrint('🌐 PUT ${endpoint} : $baseUrl$endpoint');
+      debugPrint('📤 Request data ${endpoint} : $data');
     }
 
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: {..._headers(), ...?headers},
-        body: json.encode(data),
-      ).timeout(timeout);
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl$endpoint'),
+            headers: {..._headers(), ...?headers},
+            body: json.encode(data),
+          )
+          .timeout(timeout);
 
       if (kDebugMode) {
-        debugPrint('📥 Response status: ${response.statusCode}');
-        debugPrint('📦 Response body: ${response.body}');
+        debugPrint('📥 Response ${endpoint} status: ${response.statusCode}');
+       // debugPrint('📦 Response ${endpoint} body: ${response.body}');
       }
 
       if (response.statusCode == 200) {
         if (response.body.isEmpty) {
-          throw Exception('Empty response body');
+          throw Exception('Empty ${endpoint} response body');
         }
         final data = json.decode(response.body);
         if (data == null) {
-          throw Exception('Null response data');
+          throw Exception('Null ${endpoint} response data');
         }
         return data as T;
       } else {
         final errorBody = json.decode(response.body);
-        throw Exception(errorBody['message'] ?? 'Failed to update data: ${response.statusCode}');
+        throw Exception(errorBody['message'] ??
+            'Failed to update ${endpoint} data: ${response.statusCode}');
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ Error: $e');
+        debugPrint('❌ Error ${endpoint} : $e');
       }
       rethrow;
     }
   }
 
- 
+  // Generic DELETE method
+  Future<T> delete<T>(String endpoint, {Map<String, String>? headers}) async {
+    if (kDebugMode) {
+      debugPrint('🌐 DELETE ${endpoint} : $baseUrl$endpoint');
+    }
+
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl$endpoint'),
+        headers: {..._headers(), ...?headers},
+      ).timeout(timeout);
+
+      if (kDebugMode) {
+        debugPrint('📥 Response ${endpoint} status: ${response.statusCode}');
+      //  debugPrint('📦 Response ${endpoint} body: ${response.body}');
+      }
+
+      if (response.statusCode == 200) {
+        if (response.body.isEmpty) {
+          return {} as T;
+        }
+        final data = json.decode(response.body);
+        return data as T;
+      } else {
+        final errorBody = json.decode(response.body);
+        throw Exception(errorBody['message'] ??
+            'Failed to delete ${endpoint} data: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Error ${endpoint} : $e');
+      }
+      rethrow;
+    }
+  }
 
   // // Get list of plants
   // Future<List<Plant>> getPlants() async {
@@ -183,4 +224,4 @@ class BaseApiService {
   //     rethrow;
   //   }
   // }
-} 
+}

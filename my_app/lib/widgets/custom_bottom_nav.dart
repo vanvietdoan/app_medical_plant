@@ -20,7 +20,7 @@ class CustomBottomNav extends StatelessWidget {
     if (index == 3) {
       final authService = AuthService();
       final currentUser = authService.currentUser;
-      
+
       if (currentUser == null) {
         Navigator.pushReplacement(
           context,
@@ -29,7 +29,8 @@ class CustomBottomNav extends StatelessWidget {
       } else {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => ExpertProfile(expert: currentUser)),
+          MaterialPageRoute(
+              builder: (context) => ExpertProfile(expert: currentUser)),
         );
       }
     } else {

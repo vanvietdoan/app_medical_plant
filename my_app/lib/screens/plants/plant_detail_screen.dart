@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../models/plant.dart';
+import 'package:flutter/foundation.dart';
+import '../../models/plant.dart' as plant_model;
+import '../../models/advice.dart';
+import '../../models/user.dart';
 import '../../services/plant_service.dart';
+import '../../services/advice_service.dart';
+import '../../widgets/custom_bottom_nav.dart';
+import '../../screens/disease/disease_detail_screen.dart';
+import 'package:intl/intl.dart';
 
 class PlantDetailScreen extends StatefulWidget {
   final int plantId;
@@ -13,32 +20,37 @@ class PlantDetailScreen extends StatefulWidget {
 
 class _PlantDetailScreenState extends State<PlantDetailScreen> {
   final PlantService _plantService = PlantService();
+  final AdviceService _adviceService = AdviceService();
+
+  plant_model.Plant? _plant;
+  List<Advice> _advices = [];
   bool _isLoading = true;
-  Plant? _plant;
-  String? _error;
-  int _selectedImageIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadPlantDetails();
+    _loadData();
   }
 
-  Future<void> _loadPlantDetails() async {
+  Future<void> _loadData() async {
     try {
       final plant = await _plantService.getPlantById(widget.plantId);
+      final advices = await _adviceService.getAdvicesByPlant(widget.plantId);
+
       if (mounted) {
         setState(() {
           _plant = plant;
+          _advices = advices;
           _isLoading = false;
-          _error = null;
         });
       }
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Lỗi tải dữ liệu: $e');
+      }
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _error = 'Không thể tải thông tin cây thuốc: $e';
         });
       }
     }
@@ -48,171 +60,297 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chi tiết cây thuốc'),
+        title: Text(_plant?.name ?? 'Chi tiết cây'),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        color: Colors.red,
-                        size: 48,
+          : _plant == null
+              ? const Center(child: Text('Không tìm thấy thông tin cây'))
+              : Column(
+                  children: [
+                    if (_plant?.images != null && _plant!.images!.isNotEmpty)
+                      PlantImage(plant: _plant!),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 1,
+                            child: PlantDetails(plant: _plant!),
+                          ),
+                          Expanded(
+                            flex: 1,
+                            child: AdviceList(advices: _advices),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _error!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadPlantDetails,
-                        child: const Text('Thử lại'),
-                      ),
-                    ],
+                    ),
+                  ],
+                ),
+      bottomNavigationBar: const CustomBottomNav(
+        currentIndex: 1,
+      ),
+    );
+  }
+}
+
+class PlantImage extends StatelessWidget {
+  final plant_model.Plant plant;
+
+  const PlantImage({super.key, required this.plant});
+
+  @override
+  Widget build(BuildContext context) {
+    if (plant.images == null || plant.images!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      height: 200,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: NetworkImage(plant.images!.first.url),
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+}
+
+class PlantDetails extends StatelessWidget {
+  final plant_model.Plant plant;
+
+  const PlantDetails({super.key, required this.plant});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            plant.name,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          if (plant.englishName != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              plant.englishName!,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+          if (plant.description != null) ...[
+            const SizedBox(height: 16),
+            const Text(
+              'Mô tả:',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(plant.description!),
+          ],
+          if (plant.benefits != null) ...[
+            const SizedBox(height: 16),
+            const Text(
+              'Công dụng:',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(plant.benefits!),
+          ],
+          if (plant.instructions != null) ...[
+            const SizedBox(height: 16),
+            const Text(
+              'Cách sử dụng:',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(plant.instructions!),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class AdviceList extends StatelessWidget {
+  final List<Advice> advices;
+
+  const AdviceList({super.key, required this.advices});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.all(16),
+          child: Text(
+            'Lời khuyên từ chuyên gia',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: advices.length,
+            itemBuilder: (context, index) {
+              return AdviceCard(advice: advices[index]);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class AdviceCard extends StatelessWidget {
+  final Advice advice;
+
+  const AdviceCard({super.key, required this.advice});
+
+  String _formatDate(String? dateString) {
+    if (dateString == null) return '';
+    try {
+      final date = DateTime.parse(dateString);
+      return DateFormat('HH:mm - dd/MM/yyyy').format(date);
+    } catch (e) {
+      return dateString;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (advice.user != null) ...[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Colors.green,
+                    backgroundImage: advice.user?.avatar?.isNotEmpty == true
+                        ? NetworkImage(advice.user!.avatar!)
+                        : null,
+                    child: advice.user?.avatar?.isEmpty != false
+                        ? const Icon(Icons.person,
+                            color: Colors.white, size: 20)
+                        : null,
                   ),
-                )
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (_plant?.images != null &&
-                          _plant!.images!.isNotEmpty) ...[
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            _plant!.images![_selectedImageIndex].url,
-                            width: double.infinity,
-                            height: 200,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                width: double.infinity,
-                                height: 200,
-                                color: Colors.grey[300],
-                                child: const Icon(
-                                  Icons.image_not_supported,
-                                  size: 48,
-                                  color: Colors.grey,
-                                ),
-                              );
-                            },
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    
+                        Text(
+                          advice.user!.fullName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          height: 80,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: _plant!.images!.length,
-                            itemBuilder: (context, index) {
-                              return GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _selectedImageIndex = index;
-                                  });
-                                },
-                                child: Container(
-                                  margin: const EdgeInsets.only(right: 8),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: _selectedImageIndex == index
-                                          ? Colors.green
-                                          : Colors.grey,
-                                      width: 2,
-                                    ),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: Image.network(
-                                      _plant!.images![index].url,
-                                      width: 80,
-                                      height: 80,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                        return Container(
-                                          width: 80,
-                                          height: 80,
-                                          color: Colors.grey[300],
-                                          child: const Icon(
-                                            Icons.image_not_supported,
-                                            size: 24,
-                                            color: Colors.grey,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
+                        Text(
+                          advice.user!.title,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 16),
                       ],
-                      Text(
-                        _plant?.name ?? '',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+            Text(
+              advice.title ?? '',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              advice.content ?? '',
+              overflow: TextOverflow.ellipsis,
+              maxLines: 3,
+            ),
+            if (advice.disease != null) ...[
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => DiseaseDetailScreen(
+                        diseaseId: advice.disease!.diseaseId,
+                      ),
+                    ),
+                  );
+                },
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.healing,
+                      size: 16,
+                      color: Colors.green,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        advice.disease!.name,
                         style: const TextStyle(
-                          fontSize: 24,
+                          color: Colors.green,
                           fontWeight: FontWeight.bold,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      if (_plant?.englishName != null) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          _plant!.englishName!,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                      if (_plant?.description != null) ...[
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Mô tả',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(_plant!.description!),
-                      ],
-                      if (_plant?.benefits != null) ...[
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Công dụng',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(_plant!.benefits!),
-                      ],
-                      if (_plant?.instructions != null) ...[
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Cách sử dụng',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(_plant!.instructions!),
-                      ],
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
+              ),
+            ],
+            const SizedBox(height: 8),
+            Text(
+              _formatDate(advice.createdAt),
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
