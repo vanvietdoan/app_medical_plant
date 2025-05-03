@@ -3,6 +3,7 @@ import 'package:my_app/screens/home_screen.dart';
 import 'package:my_app/screens/profile/expert_profile.dart';
 import 'package:my_app/services/auth_service.dart';
 import 'package:file_picker/file_picker.dart' as FilePicker;
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,16 +15,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Medical Plant',
+      title: 'Medical Plant App',
+      theme: AppTheme.lightTheme,
+      home: const HomeScreen(),
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.green,
-          primary: Colors.green,
-        ),
-        useMaterial3: true,
-      ),
-      home: const AuthWrapper(), // chuyển logic sang widget này
     );
   }
 }

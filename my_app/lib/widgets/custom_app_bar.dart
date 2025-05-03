@@ -13,7 +13,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     final currentUser = _authService.currentUser;
 
     return AppBar(
-      backgroundColor: const Color(0xFFF7FBF1),
+      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
       elevation: 0,
       automaticallyImplyLeading: false,
       title: Row(
@@ -26,7 +26,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 'assets/images/logo.png',
                 height: 100,
               ),
-              
             ],
           ),
           // Avatar và tên user bên phải
@@ -55,7 +54,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ExpertProfile(expert: currentUser),
+                        builder: (context) =>
+                            ExpertProfile(expert: currentUser),
                       ),
                     );
                   }
@@ -87,4 +87,4 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
-} 
+}

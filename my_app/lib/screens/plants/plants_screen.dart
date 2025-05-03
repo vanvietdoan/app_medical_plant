@@ -32,11 +32,9 @@ class _PlantsScreenState extends State<PlantsScreen> {
   final ScrollController _scrollController = ScrollController();
 
   List<Plant> _plants = [];
+  List<Plant> _allPlants = [];
   List<Class> _Class = [];
   bool _isLoading = false;
-  bool _hasMore = true;
-  int _currentPage = 1;
-  static const int _pageSize = 10;
   Timer? _searchDebounce;
 
   // Filter states
@@ -62,14 +60,12 @@ class _PlantsScreenState extends State<PlantsScreen> {
     super.initState();
     _loadPlants();
     _loadFilterData();
-    _scrollController.addListener(_onScroll);
     _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
-    _scrollController.dispose();
     _searchDebounce?.cancel();
     super.dispose();
   }
@@ -80,38 +76,36 @@ class _PlantsScreenState extends State<PlantsScreen> {
 
     // Set a new debounce timer
     _searchDebounce = Timer(const Duration(milliseconds: 300), () {
-      _loadPlants(refresh: true);
+      _filterPlants();
     });
   }
 
   void _clearSearch() {
     _searchController.clear();
+    _filterPlants();
+  }
+
+  void _filterPlants() {
     setState(() {
-      // Reset các trạng thái tìm kiếm
-      _currentPage = 1;
-      _hasMore = true;
-      _plants = [];
+      if (_searchController.text.isEmpty) {
+        _plants = List.from(_allPlants);
+      } else {
+        final searchText = _searchController.text.toLowerCase();
+        _plants = _allPlants.where((plant) {
+          final name = plant.name.toLowerCase();
+          final englishName = plant.englishName?.toLowerCase() ?? '';
+          return name.contains(searchText) || englishName.contains(searchText);
+        }).toList();
+      }
     });
   }
 
-  Future<void> _loadPlants({bool refresh = false}) async {
-    if (refresh) {
-      setState(() {
-        _currentPage = 1;
-        _hasMore = true;
-        _plants = [];
-      });
-    }
-
-    if (!_hasMore || _isLoading) return;
-
+  Future<void> _loadPlants() async {
     setState(() => _isLoading = true);
 
     try {
       String query = '';
-      if (_searchController.text.isNotEmpty) {
-        query = 'name=${_searchController.text}';
-      } else if (_selectedDivision != null) {
+      if (_selectedDivision != null) {
         query = 'divisionId=${_selectedDivision}';
         if (_selectedClass != null) {
           query += '&classId=${_selectedClass}';
@@ -131,18 +125,12 @@ class _PlantsScreenState extends State<PlantsScreen> {
       }
 
       final plants = query.isEmpty
-          ? await _plantService.getPlants(page: _currentPage, limit: _pageSize)
-          : await _plantService
-              .getPlantSearch('$query&page=$_currentPage&limit=$_pageSize');
+          ? await _plantService.getPlants()
+          : await _plantService.getPlantSearch(query);
 
       setState(() {
-        if (refresh) {
-          _plants = plants;
-        } else {
-          _plants.addAll(plants);
-        }
-        _hasMore = plants.length >= _pageSize;
-        _currentPage++;
+        _allPlants = plants;
+        _plants = List.from(_allPlants);
         _isLoading = false;
       });
     } catch (e) {
@@ -155,15 +143,8 @@ class _PlantsScreenState extends State<PlantsScreen> {
     }
   }
 
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      _loadPlants();
-    }
-  }
-
   Future<void> _onRefresh() async {
-    await _loadPlants(refresh: true);
+    await _loadPlants();
   }
 
   Future<void> _loadFilterData() async {
@@ -238,7 +219,7 @@ class _PlantsScreenState extends State<PlantsScreen> {
       _selectedOrder = null; // Reset order when division changes
       _selectedFamily = null; // Reset family when division changes
     });
-    _loadPlants(refresh: true);
+    _loadPlants();
   }
 
   void _handleClassChange(String? value) {
@@ -247,7 +228,7 @@ class _PlantsScreenState extends State<PlantsScreen> {
       _selectedOrder = null; // Reset order when class changes
       _selectedFamily = null; // Reset family when class changes
     });
-    _loadPlants(refresh: true);
+    _loadPlants();
   }
 
   void _handleOrderChange(String? value) {
@@ -255,7 +236,7 @@ class _PlantsScreenState extends State<PlantsScreen> {
       _selectedOrder = value;
       _selectedFamily = null; // Reset family when order changes
     });
-    _loadPlants(refresh: true);
+    _loadPlants();
   }
 
   void _handleFamilyChange(String? value) {
@@ -267,7 +248,7 @@ class _PlantsScreenState extends State<PlantsScreen> {
     if (value != null) {
       _loadGeneraByFamily(int.parse(value));
     }
-    _loadPlants(refresh: true);
+    _loadPlants();
   }
 
   void _handleGenusChange(String? value) {
@@ -279,14 +260,14 @@ class _PlantsScreenState extends State<PlantsScreen> {
     if (value != null) {
       _loadSpeciesByGenus(int.parse(value));
     }
-    _loadPlants(refresh: true);
+    _loadPlants();
   }
 
   void _handleSpeciesChange(String? value) {
     setState(() {
       _selectedSpecies = value;
     });
-    _loadPlants(refresh: true);
+    _loadPlants();
   }
 
   void _clearDivision() {
@@ -298,7 +279,7 @@ class _PlantsScreenState extends State<PlantsScreen> {
       _selectedGenus = null;
       _selectedSpecies = null;
     });
-    _loadPlants(refresh: true);
+    _loadPlants();
   }
 
   void _clearClass() {
@@ -309,7 +290,7 @@ class _PlantsScreenState extends State<PlantsScreen> {
       _selectedGenus = null;
       _selectedSpecies = null;
     });
-    _loadPlants(refresh: true);
+    _loadPlants();
   }
 
   void _clearOrder() {
@@ -319,7 +300,7 @@ class _PlantsScreenState extends State<PlantsScreen> {
       _selectedGenus = null;
       _selectedSpecies = null;
     });
-    _loadPlants(refresh: true);
+    _loadPlants();
   }
 
   void _clearFamily() {
@@ -328,7 +309,7 @@ class _PlantsScreenState extends State<PlantsScreen> {
       _selectedGenus = null;
       _selectedSpecies = null;
     });
-    _loadPlants(refresh: true);
+    _loadPlants();
   }
 
   void _clearGenus() {
@@ -336,14 +317,14 @@ class _PlantsScreenState extends State<PlantsScreen> {
       _selectedGenus = null;
       _selectedSpecies = null;
     });
-    _loadPlants(refresh: true);
+    _loadPlants();
   }
 
   void _clearSpecies() {
     setState(() {
       _selectedSpecies = null;
     });
-    _loadPlants(refresh: true);
+    _loadPlants();
   }
 
   Widget _buildFilterDropdown(
@@ -697,55 +678,22 @@ class _PlantsScreenState extends State<PlantsScreen> {
                                 ),
                               ),
                             )
-                          : ListView.builder(
+                          : GridView.builder(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
-                              itemCount: _plants.length + (_hasMore ? 1 : 0),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                childAspectRatio: 0.75,
+                                crossAxisSpacing: 8,
+                                mainAxisSpacing: 8,
+                              ),
+                              itemCount: _plants.length,
                               itemBuilder: (context, index) {
-                                if (index == _plants.length) {
-                                  return const Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(8.0),
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  );
-                                }
-
                                 final plant = _plants[index];
                                 return Card(
-                                  margin: const EdgeInsets.only(bottom: 16),
-                                  child: ListTile(
-                                    leading: ClipRRect(
-                                      borderRadius: BorderRadius.circular(4),
-                                      child: plant.images != null &&
-                                              plant.images!.isNotEmpty
-                                          ? Image.network(
-                                              plant.images![0].url,
-                                              width: 60,
-                                              height: 60,
-                                              fit: BoxFit.cover,
-                                              errorBuilder:
-                                                  (context, error, stackTrace) {
-                                                return Image.asset(
-                                                  'assets/images/plant_placeholder.png',
-                                                  width: 60,
-                                                  height: 60,
-                                                  fit: BoxFit.cover,
-                                                );
-                                              },
-                                            )
-                                          : Image.asset(
-                                              'assets/images/plant_placeholder.png',
-                                              width: 60,
-                                              height: 60,
-                                              fit: BoxFit.cover,
-                                            ),
-                                    ),
-                                    title: Text(plant.name),
-                                    subtitle: Text(plant.englishName ?? ''),
-                                    trailing: const Icon(
-                                        Icons.arrow_forward_ios,
-                                        size: 16),
+                                  margin: EdgeInsets.zero,
+                                  child: InkWell(
                                     onTap: () {
                                       Navigator.push(
                                         context,
@@ -756,6 +704,64 @@ class _PlantsScreenState extends State<PlantsScreen> {
                                         ),
                                       );
                                     },
+                                    child: Column(
+                                      children: [
+                                        Expanded(
+                                          child: plant.images != null &&
+                                                  plant.images!.isNotEmpty
+                                              ? Image.network(
+                                                  plant.images![0].url,
+                                                  height: double.infinity,
+                                                  width: double.infinity,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (context, error,
+                                                      stackTrace) {
+                                                    return Image.asset(
+                                                      'assets/images/plant_placeholder.png',
+                                                      height: double.infinity,
+                                                      width: double.infinity,
+                                                      fit: BoxFit.cover,
+                                                    );
+                                                  },
+                                                )
+                                              : Image.asset(
+                                                  'assets/images/plant_placeholder.png',
+                                                  height: double.infinity,
+                                                  width: double.infinity,
+                                                  fit: BoxFit.cover,
+                                                ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Column(
+                                            children: [
+                                              Text(
+                                                plant.name,
+                                                style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                                textAlign: TextAlign.center,
+                                              ),
+                                              if (plant.englishName != null &&
+                                                  plant.englishName!.isNotEmpty)
+                                                Text(
+                                                  plant.englishName!,
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 );
                               },
