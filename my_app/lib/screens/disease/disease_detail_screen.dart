@@ -5,6 +5,7 @@ import '../../models/user.dart';
 import '../../services/disease_service.dart';
 import '../../services/advice_service.dart';
 import '../../screens/plants/plant_detail_screen.dart';
+import '../../screens/profile/visit_profile.dart';
 import '../../widgets/custom_bottom_nav.dart';
 import 'package:intl/intl.dart';
 
@@ -268,13 +269,26 @@ class AdviceCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          advice.user!.fullName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                        InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => UserProfilePage(
+                                  userId: advice.user!.userId,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            advice.user!.fullName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.blue,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           advice.user!.title,

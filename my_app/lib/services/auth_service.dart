@@ -28,9 +28,12 @@ class AuthService {
 
       // Get user data from login response
       final userData = response['user'] as Map<String, dynamic>;
+      debugPrint('User data from login response: $userData');
+      debugPrint('User ID from login response: ${userData['id']}');
 
       // Get complete user profile using the ID from login response
       final userProfile = await getUserProfile(userData['id']);
+      debugPrint('User profile after getUserProfile: ${userProfile.toJson()}');
       _currentUser = userProfile;
 
       return _currentUser!;
@@ -59,14 +62,19 @@ class AuthService {
 
   Future<User> getUserProfile(int userId) async {
     try {
+      debugPrint('Getting user profile for ID: $userId');
       final response =
           await _apiService.get<Map<String, dynamic>>('/users/$userId');
+      debugPrint('User profile response: $response');
 
-      // API trả về data trong response
+      // Check if response has data field, otherwise use the response directly
       if (response['data'] != null) {
-        return User.fromJson(response['data']);
+        final userProfile = User.fromJson(response['data']);
+        debugPrint('User profile after getUserProfile: ${userProfile.toJson()}');
+        return userProfile;
+      } else {
+        return User.fromJson(response);
       }
-      throw Exception('Không tìm thấy thông tin người dùng');
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Lỗi lấy thông tin người dùng: $e');

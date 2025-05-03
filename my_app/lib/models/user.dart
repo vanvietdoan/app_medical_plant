@@ -24,8 +24,27 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    final userId = json['id'] ?? json['user_id'];
+    if (userId == null || userId == 0) {
+      throw Exception('User ID is missing or invalid');
+    }
+
+    Role? role;
+    if (json['role'] != null) {
+      if (json['role'] is String) {
+        // For login response where role is just a string
+        role = Role(
+          roleId: 0, // Default role ID for string roles
+          name: json['role'],
+        );
+      } else {
+        // For user profile where role is an object
+        role = Role.fromJson(json['role']);
+      }
+    }
+
     return User(
-      id: json['id'] ?? 0,
+      id: userId,
       full_name: json['full_name'] ?? '',
       title: json['title'] ?? '',
       proof: json['proof'] ?? '',
@@ -33,7 +52,7 @@ class User {
       active: json['active'] ?? false,
       avatar: json['avatar'] ?? '',
       email: json['email'] ?? '',
-      role: json['role'] != null ? Role.fromJson(json['role']) : null,
+      role: role,
     );
   }
 

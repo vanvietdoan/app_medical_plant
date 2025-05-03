@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../models/user.dart';
-import '../home_screen.dart';
-import '../auth/login_screen.dart';
-import '../../widgets/custom_app_bar.dart';
-import '../../widgets/custom_bottom_nav.dart';
+import '../../services/user_service.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/custom_bottom_nav.dart';
+import '../auth/login_screen.dart';
+import '../advice/advice_list_screen.dart';
+import '../home_screen.dart';
+import '../../widgets/custom_app_bar.dart';
 import 'edit_profile_screen.dart';
 import 'change_password_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -218,6 +220,16 @@ class ExpertProfileState extends State<ExpertProfile> {
                   child: SizedBox(
                     height: 50,
                     child: ElevatedButton.icon(
+                      onPressed: _manageAdvice,
+                      icon: const Icon(Icons.lock),
+                      label: const Text('Quản lý lời khuyên'),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: SizedBox(
+                    height: 50,
+                    child: ElevatedButton.icon(
                       onPressed: _editProfile,
                       icon: const Icon(Icons.edit),
                       label: const Text('Chỉnh sửa thông tin'),
@@ -281,10 +293,20 @@ class ExpertProfileState extends State<ExpertProfile> {
   }
 
   void _editProfile() {
+    debugPrint('expert in edit profile screen: ${widget.expert.id}');
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => EditProfileScreen(user: widget.expert),
+      ),
+    );
+  }
+
+  void _manageAdvice() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ManageAdviceScreen(expertId: widget.expert.id),
       ),
     );
   }

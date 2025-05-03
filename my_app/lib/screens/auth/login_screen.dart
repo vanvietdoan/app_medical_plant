@@ -45,6 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (mounted) {
+        debugPrint('id_user in login screen: ${user.id}');
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (context) => ExpertProfile(expert: user),

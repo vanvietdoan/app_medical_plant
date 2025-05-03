@@ -11,6 +11,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final currentUser = _authService.currentUser;
+    debugPrint('id currentUser in custom app bar: ${currentUser?.id}');
 
     return AppBar(
       backgroundColor: const Color.fromARGB(255, 255, 255, 255),

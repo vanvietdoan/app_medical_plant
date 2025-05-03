@@ -38,6 +38,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
+    debugPrint('user in edit profile screen: ${widget.user?.id}');
     _active = widget.user?.active ?? true;
     _avatarUrl = widget.user?.avatar;
     _proofUrl = widget.user?.proof;

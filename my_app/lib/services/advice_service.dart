@@ -56,6 +56,21 @@ class AdviceService {
       rethrow;
     }
   }
+   Future<List<Advice>> getAdvicesByUser(int userId,
+      {int page = 1, int limit = 10}) async {
+    try {
+      final response = await _apiService
+          .get<dynamic>('/advice/user/$userId?page=$page&limit=$limit');
+      final List<dynamic> data =
+          response is Map<String, dynamic> ? response['data'] : response;
+      return data.map((json) => Advice.fromJson(json)).toList();
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Lỗi lấy lời khuyên theo người dùng: $e');
+      }
+      rethrow;
+    }
+  }
 
   /// Lấy danh sách lời khuyên theo bệnh
   Future<List<Advice>> getAdvicesByDisease(int diseaseId,
