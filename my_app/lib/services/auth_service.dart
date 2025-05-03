@@ -42,6 +42,21 @@ class AuthService {
     }
   }
 
+  Future<Map<String, dynamic>> register(UserRegister user) async {
+    try {
+      final response = await _apiService.post<Map<String, dynamic>>(
+        '/auth/register',
+        user.toJson(),
+      );
+      return response;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Lỗi đăng ký: $e');
+      }
+      rethrow;
+    }
+  }
+
   Future<User> getUserProfile(int userId) async {
     try {
       final response =

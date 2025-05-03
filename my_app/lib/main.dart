@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart' as FilePicker;
 import 'theme/app_theme.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized(); 
   runApp(const MyApp());
 }
 

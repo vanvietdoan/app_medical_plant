@@ -73,7 +73,19 @@ class AdviceService {
       rethrow;
     }
   }
-
+  Future<List<ListUsetIDMostAdvice>> getUserMostAdvice() async {
+    try {
+      final response = await _apiService.get<dynamic>('/advice/user/most-advice');
+      final List<dynamic> data =
+          response is Map<String, dynamic> ? response['data'] : response; 
+      return data.map((json) => ListUsetIDMostAdvice.fromJson(json)).toList();
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Lỗi lấy danh sách lời khuyên theo bệnh: $e');
+      }
+      rethrow;
+    }
+  }
   /// Tìm kiếm lời khuyên
   Future<List<Advice>> searchAdvices(String query,
       {int page = 1, int limit = 10}) async {

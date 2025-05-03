@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/user.dart';
 import '../../services/user_service.dart';
 import '../../widgets/custom_bottom_nav.dart';
@@ -406,8 +407,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                     if (_proofUrl != null && _proofUrl!.isNotEmpty) ...[
                       InkWell(
-                        onTap: () {
-                          // TODO: Implement PDF viewer
+                        onTap: () async {
+                          final Uri url = Uri.parse(_proofUrl!);
+                          if (await canLaunchUrl(url)) {
+                            await launchUrl(url);
+                          } else {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Không thể mở file'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
                         },
                         child: Container(
                           padding: const EdgeInsets.all(12),

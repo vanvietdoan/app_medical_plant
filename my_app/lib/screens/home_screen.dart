@@ -119,26 +119,25 @@ class HomeScreenState extends State<HomeScreen>
   Future<void> _loadPlants() async {
     setState(() => _isLoading = true);
     try {
+      // Load multi-use plants
+      final multiUsePlants = await _plantService.getMultiUsePlants();
+      setState(() {
+        _mostBeneficialPlants = multiUsePlants.take(6).toList();
+      });
+
+      // Load new plants
+      final newPlants = await _plantService.getNewPlants();
+      setState(() {
+        _recentPlants = newPlants.take(6).toList();
+      });
+
+      // Load featured plants (keep existing logic)
       final plants = await _plantService.getPlants();
       setState(() {
-        // Sort by creation date for recent plants
-        _recentPlants = List.from(plants)
-          ..sort((a, b) =>
-              b.createdAt?.compareTo(a.createdAt ?? DateTime.now()) ?? 0);
-        _recentPlants = _recentPlants.take(10).toList();
-
-        // Sort by benefits length for most beneficial plants
-        _mostBeneficialPlants = List.from(plants)
-          ..sort((a, b) =>
-              b.benefits?.length.compareTo(a.benefits?.length ?? 0) ?? 0);
-        _mostBeneficialPlants = _mostBeneficialPlants.take(10).toList();
-
-        // Sort by description length for featured plants
         _featuredPlants = List.from(plants)
           ..sort((a, b) =>
               b.description?.length.compareTo(a.description?.length ?? 0) ?? 0);
-        _featuredPlants = _featuredPlants.take(10).toList();
-
+        _featuredPlants = _featuredPlants.take(6).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -177,19 +176,19 @@ class HomeScreenState extends State<HomeScreen>
           children: [
             _imageSlider(),
             _buildPlantSection(
-              'Top 10 Cây Thuốc Mới Phát Hiện',
+              'Top 6 Cây Thuốc Mới Phát Hiện',
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _buildPlantList(_recentPlants),
             ),
             _buildPlantSection(
-              'Top 10 Cây Thuốc Có Nhiều Công Dụng',
+              'Top 6 Cây Thuốc Có Nhiều Công Dụng',
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _buildPlantList(_mostBeneficialPlants),
             ),
             _buildPlantSection(
-              'Top 10 Cây Thuốc Tiêu Biểu',
+              'Top 6 Cây Thuốc Tiêu Biểu',
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _buildPlantList(_featuredPlants),
@@ -341,6 +340,27 @@ class HomeScreenState extends State<HomeScreen>
       ],
     );
   }
+    Widget _userSection(String title, Widget content) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 200,
+          child: content,
+        ),
+      ],
+    );
+  }
 
   Widget _buildPlantList(List<Plant> plants) {
     return SizedBox(
@@ -367,48 +387,69 @@ class HomeScreenState extends State<HomeScreen>
             ),
           );
         },
-        child: Column(
-          children: [
-            plant.images != null && plant.images!.isNotEmpty
-                ? Image.network(
-                    plant.images![0].url,
-                    height: 120,
-                    width: 150,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Image.asset(
-                        'assets/images/sam.png',
+        child: SizedBox(
+          width: 150,
+          height: 200,
+          child: Column(
+            children: [
+              SizedBox(
+                height: 120,
+                child: plant.images != null && plant.images!.isNotEmpty
+                    ? Image.network(
+                        plant.images![0].url,
                         height: 120,
                         width: 150,
                         fit: BoxFit.cover,
-                      );
-                    },
-                  )
-                : Image.asset(
-                    'assets/images/sam.png',
-                    height: 120,
-                    width: 150,
-                    fit: BoxFit.cover,
-                  ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                children: [
-                  Text(
-                    plant.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    plant.englishName ?? '',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            height: 120,
+                            width: 150,
+                            color: Colors.grey[200],
+                            child: const Icon(
+                              Icons.image_not_supported,
+                              color: Colors.grey,
+                            ),
+                          );
+                        },
+                      )
+                    : Container(
+                        height: 120,
+                        width: 150,
+                        color: Colors.grey[200],
+                        child: const Icon(
+                          Icons.image_not_supported,
+                          color: Colors.grey,
+                        ),
+                      ),
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  children: [
+                    Text(
+                      plant.name,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                    if (plant.englishName != null &&
+                        plant.englishName!.isNotEmpty)
+                      Text(
+                        plant.englishName!,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

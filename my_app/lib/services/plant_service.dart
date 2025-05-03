@@ -42,6 +42,40 @@ class PlantService {
       rethrow;
     }
   }
+  Future<List<Plant>> getNewPlants() async {
+    try {
+      final response = await _apiService.get<dynamic>(
+        '/plants/new-plants',
+      );
+
+      List<dynamic> plantsJson;
+      if (response is Map<String, dynamic>) {
+        plantsJson = response['data'] as List<dynamic>;
+      } else {
+        plantsJson = response as List<dynamic>;
+      }
+      return plantsJson.map((json) => Plant.fromJson(json)).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
+   Future<List<Plant>> getMultiUsePlants() async {
+    try {
+      final response = await _apiService.get<dynamic>(
+        '/plants/multiple-benefits',
+      );
+      
+      List<dynamic> plantsJson;
+      if (response is Map<String, dynamic>) {
+        plantsJson = response['data'] as List<dynamic>;
+      } else {
+        plantsJson = response as List<dynamic>;
+      }
+      return plantsJson.map((json) => Plant.fromJson(json)).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
 
   /// Search plants
   Future<List<Plant>> searchPlants(String query,

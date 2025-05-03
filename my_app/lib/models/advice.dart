@@ -109,6 +109,20 @@ class Disease {
   }
 }
 
+class ListUsetIDMostAdvice {
+  final int userId;
+  final int totalAdvice;
+
+  ListUsetIDMostAdvice({required this.userId, required this.totalAdvice});
+
+  factory ListUsetIDMostAdvice.fromJson(Map<String, dynamic> json) {
+    return ListUsetIDMostAdvice(
+      userId: json['user_id'] ?? 0,
+      totalAdvice: json['total_advice'] ?? 0,
+    );
+  }
+}
+
 class User {
   final int userId;
   final String fullName;

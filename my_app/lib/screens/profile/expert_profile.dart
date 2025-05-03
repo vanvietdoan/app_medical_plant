@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../models/user.dart';
 import '../home_screen.dart';
-import '../auth/login_screen.dart'; 
-import '../../widgets/custom_app_bar.dart'; 
+import '../auth/login_screen.dart';
+import '../../widgets/custom_app_bar.dart';
 import '../../widgets/custom_bottom_nav.dart';
 import '../../services/auth_service.dart';
 import 'edit_profile_screen.dart';
 import 'change_password_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ExpertProfile extends StatefulWidget {
   final User expert;
@@ -76,7 +77,9 @@ class ExpertProfileState extends State<ExpertProfile> {
                         : null,
                     child: widget.expert.avatar.isEmpty
                         ? Text(
-                            widget.expert.full_name.substring(0, 1).toUpperCase(),
+                            widget.expert.full_name
+                                .substring(0, 1)
+                                .toUpperCase(),
                             style: const TextStyle(fontSize: 32),
                           )
                         : null,
@@ -106,7 +109,8 @@ class ExpertProfileState extends State<ExpertProfile> {
             // Role Badge
             Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.green.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
@@ -140,8 +144,20 @@ class ExpertProfileState extends State<ExpertProfile> {
               ),
               const SizedBox(height: 8),
               InkWell(
-                onTap: () {
-                  // TODO: Implement PDF viewer
+                onTap: () async {
+                  final Uri url = Uri.parse(widget.expert.proof);
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url);
+                  } else {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Không thể mở file'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
                 },
                 child: Container(
                   padding: const EdgeInsets.all(12),
@@ -276,7 +292,7 @@ class ExpertProfileState extends State<ExpertProfile> {
   void _handleLogout(BuildContext context) {
     final authService = AuthService();
     authService.logout();
-    
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(

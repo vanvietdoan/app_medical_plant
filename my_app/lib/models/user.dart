@@ -49,3 +49,29 @@ class User {
         'role': role?.toJson(),
       };
 }
+
+class UserRegister {
+  final String email;
+  final String password;
+  final String fullName;
+  final String specialty;
+  final String workplace;
+
+  UserRegister({
+    required this.email,
+    required this.password,
+    required this.fullName,
+    required this.specialty,
+    required this.workplace,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'email': email,
+      'password': password,
+      'full_name': fullName,
+      'specialty': specialty,
+      'workplace': workplace,
+    };
+  }
+}

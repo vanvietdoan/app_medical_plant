@@ -73,6 +73,9 @@ class UserService {
     }
   }
 
+  /// Register user
+
+
   /// Search users
   Future<List<User>> searchUsers(String query,
       {int page = 1, int limit = 10}) async {
