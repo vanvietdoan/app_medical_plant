@@ -159,10 +159,18 @@ class AdviceService {
         requestData,
       );
 
-      if (response is Map<String, dynamic>) {
-        return Advice.fromJson(response['data'] ?? response);
+      if (response == null) {
+        throw Exception('Không nhận được phản hồi từ server');
       }
-      return Advice.fromJson(response);
+
+      if (response is Map<String, dynamic>) {
+        if (response.containsKey('data')) {
+          return Advice.fromJson(response['data']);
+        }
+        return Advice.fromJson(response);
+      }
+
+      throw Exception('Định dạng phản hồi không hợp lệ');
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Lỗi tạo lời khuyên: $e');

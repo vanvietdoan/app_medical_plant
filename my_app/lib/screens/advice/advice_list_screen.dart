@@ -6,6 +6,7 @@ import '../../services/auth_service.dart';
 import 'package:intl/intl.dart';
 import 'advice_edit_screen.dart';
 import 'advice_create_screen.dart';
+import '../../widgets/custom_bottom_nav.dart';
 
 class ManageAdviceScreen extends StatefulWidget {
   final int expertId;
@@ -232,6 +233,7 @@ class _ManageAdviceScreenState extends State<ManageAdviceScreen> {
         onPressed: _navigateToCreateScreen,
         child: const Icon(Icons.add),
       ),
+      bottomNavigationBar: const CustomBottomNav(currentIndex: 3),
     );
   }
 }

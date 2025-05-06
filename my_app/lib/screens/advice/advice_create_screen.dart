@@ -5,13 +5,18 @@ import '../../models/disease.dart' as disease_model;
 import '../../services/advice_service.dart';
 import '../../services/plant_service.dart';
 import '../../services/disease_service.dart';
+import '../../widgets/custom_bottom_nav.dart';
 
 class AdviceCreateScreen extends StatefulWidget {
   final int expertId;
+  final int? plantId;
+  final bool fromPlantDetail;
 
   const AdviceCreateScreen({
     super.key,
     required this.expertId,
+    this.plantId,
+    this.fromPlantDetail = false,
   });
 
   @override
@@ -53,6 +58,14 @@ class _AdviceCreateScreenState extends State<AdviceCreateScreen> {
       final plants = await _plantService.getPlants();
       final diseases = await _diseaseService.getDiseases();
 
+      // If plantId is provided, find and select the corresponding plant
+      if (widget.plantId != null) {
+        _selectedPlant = plants.firstWhere(
+          (p) => p.plantId == widget.plantId,
+          orElse: () => plants.first,
+        );
+      }
+
       setState(() {
         _plants = plants;
         _diseases = diseases;
@@ -90,7 +103,9 @@ class _AdviceCreateScreenState extends State<AdviceCreateScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context, true); // Return true to indicate success
+
+        // Always return true to indicate success, regardless of where it was opened from
+        Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
@@ -208,6 +223,7 @@ class _AdviceCreateScreenState extends State<AdviceCreateScreen> {
                 ),
               ),
             ),
+      bottomNavigationBar: const CustomBottomNav(currentIndex: 2),
     );
   }
 }

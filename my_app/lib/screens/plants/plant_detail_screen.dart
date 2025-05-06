@@ -5,9 +5,12 @@ import '../../models/advice.dart';
 import '../../models/user.dart';
 import '../../services/plant_service.dart';
 import '../../services/advice_service.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/custom_bottom_nav.dart';
 import '../../screens/disease/disease_detail_screen.dart';
 import '../../screens/profile/visit_profile.dart';
+import '../../screens/advice/advice_create_screen.dart';
+import '../../screens/advice/advice_edit_screen.dart';
 import 'package:intl/intl.dart';
 
 class PlantDetailScreen extends StatefulWidget {
@@ -80,7 +83,10 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                           ),
                           Expanded(
                             flex: 1,
-                            child: AdviceList(advices: _advices),
+                            child: AdviceList(
+                                advices: _advices,
+                                plantId: widget.plantId,
+                                onRefresh: _loadData),
                           ),
                         ],
                       ),
@@ -239,22 +245,62 @@ class PlantDetails extends StatelessWidget {
 
 class AdviceList extends StatelessWidget {
   final List<Advice> advices;
+  final int plantId;
+  final VoidCallback onRefresh;
 
-  const AdviceList({super.key, required this.advices});
+  const AdviceList({
+    super.key,
+    required this.advices,
+    required this.plantId,
+    required this.onRefresh,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final authService = AuthService();
+    final currentUser = authService.currentUser;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.all(16),
-          child: Text(
-            'Lời khuyên từ chuyên gia',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Lời khuyên từ chuyên gia',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (currentUser != null) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AdviceCreateScreen(
+                            expertId: currentUser.id,
+                            plantId: plantId,
+                            fromPlantDetail: true,
+                          ),
+                        ),
+                      );
+                      if (result == true) {
+                        onRefresh();
+                      }
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('Tạo lời khuyên'),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
         Expanded(
@@ -262,7 +308,11 @@ class AdviceList extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             itemCount: advices.length,
             itemBuilder: (context, index) {
-              return AdviceCard(advice: advices[index]);
+              return AdviceCard(
+                advice: advices[index],
+                currentUserId: currentUser?.id,
+                onRefresh: onRefresh,
+              );
             },
           ),
         ),
@@ -273,8 +323,15 @@ class AdviceList extends StatelessWidget {
 
 class AdviceCard extends StatelessWidget {
   final Advice advice;
+  final int? currentUserId;
+  final VoidCallback onRefresh;
 
-  const AdviceCard({super.key, required this.advice});
+  const AdviceCard({
+    super.key,
+    required this.advice,
+    this.currentUserId,
+    required this.onRefresh,
+  });
 
   String _formatDate(String? dateString) {
     if (dateString == null) return '';
@@ -288,6 +345,9 @@ class AdviceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCurrentUserAdvice =
+        currentUserId != null && advice.user?.userId == currentUserId;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
@@ -347,6 +407,25 @@ class AdviceCard extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (isCurrentUserAdvice)
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AdviceEditScreen(
+                              advice: advice,
+                              expertId: currentUserId!,
+                              fromPlantDetail: true,
+                            ),
+                          ),
+                        );
+                        if (result == true) {
+                          onRefresh();
+                        }
+                      },
+                    ),
                 ],
               ),
               const SizedBox(height: 16),
