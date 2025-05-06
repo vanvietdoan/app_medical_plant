@@ -47,18 +47,18 @@ class Plant {
 
   factory Plant.fromJson(Map<String, dynamic> json) {
     return Plant(
-      plantId: json['plant_id'] ?? 0,
-      name: json['name']?.toString() ?? '',
-      englishName: json['english_name']?.toString(),
+      plantId: json['plant_id'],
+      name: json['name'],
+      englishName: json['english_name'],
       description: json['description']?.toString(),
       benefits: json['benefits']?.toString(),
       instructions: json['instructions']?.toString(),
       speciesId: json['species_id'],
       createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'])
+          ? DateTime.parse(json['created_at'])
           : null,
       updatedAt: json['updated_at'] != null
-          ? DateTime.tryParse(json['updated_at'])
+          ? DateTime.parse(json['updated_at'])
           : null,
       images: json['images'] != null
           ? (json['images'] as List).map((e) => PlantImage.fromJson(e)).toList()
@@ -69,7 +69,7 @@ class Plant {
   Map<String, dynamic> toJson() => {
         'plant_id': plantId,
         'name': name,
-        if (englishName != null) 'english_name': englishName,
+        'english_name': englishName,
         if (description != null) 'description': description,
         if (benefits != null) 'benefits': benefits,
         if (instructions != null) 'instructions': instructions,

@@ -351,6 +351,7 @@ class SearchAndFilterCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -391,9 +392,16 @@ class SearchAndFilterCard extends StatelessWidget {
           ),
           if (isFilterExpanded) ...[
             const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: filterContent,
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.6,
+              ),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: filterContent,
+                ),
+              ),
             ),
           ],
         ],
@@ -421,7 +429,9 @@ class FilterContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
+        // Row 1: Ngành, Lớp, Bộ
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -429,72 +439,88 @@ class FilterContent extends StatelessWidget {
               child: _buildFilterDropdown(
                 'division',
                 'Ngành',
-                filterData['divisions'] as List<Division>,
+                filterData['divisions'] ?? [],
                 selectedFilters['division'],
               ),
             ),
             const SizedBox(width: 16),
-            Expanded(
-              child: _buildFilterDropdown(
-                'class',
-                'Lớp',
-                filterData['classes'] as List<Class>,
-                selectedFilters['class'],
-                parentValue: selectedFilters['division'],
-                parentField: 'divisionId',
-              ),
-            ),
+            if (selectedFilters['division'] != null)
+              Expanded(
+                child: _buildFilterDropdown(
+                  'class',
+                  'Lớp',
+                  filterData['classes'] ?? [],
+                  selectedFilters['class'],
+                  parentValue: selectedFilters['division'],
+                  parentField: 'division_id',
+                ),
+              )
+            else
+              const Expanded(child: SizedBox()),
             const SizedBox(width: 16),
-            Expanded(
-              child: _buildFilterDropdown(
-                'order',
-                'Bộ',
-                filterData['orders'] as List<Order>,
-                selectedFilters['order'],
-                parentValue: selectedFilters['class'],
-                parentField: 'classId',
-              ),
-            ),
+            if (selectedFilters['class'] != null)
+              Expanded(
+                child: _buildFilterDropdown(
+                  'order',
+                  'Bộ',
+                  filterData['orders'] ?? [],
+                  selectedFilters['order'],
+                  parentValue: selectedFilters['class'],
+                  parentField: 'class_id',
+                ),
+              )
+            else
+              const Expanded(child: SizedBox()),
           ],
         ),
-        const SizedBox(height: 16),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _buildFilterDropdown(
-                'family',
-                'Họ',
-                filterData['families'] as List<Family>,
-                selectedFilters['family'],
-                parentValue: selectedFilters['order'],
-                parentField: 'orderId',
+
+        // Row 2: Họ, Chi, Loài
+        if (selectedFilters['order'] != null) ...[
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildFilterDropdown(
+                  'family',
+                  'Họ',
+                  filterData['families'] ?? [],
+                  selectedFilters['family'],
+                  parentValue: selectedFilters['order'],
+                  parentField: 'order_id',
+                ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildFilterDropdown(
-                'genus',
-                'Chi',
-                filterData['genera'] as List<Genus>,
-                selectedFilters['genus'],
-                parentValue: selectedFilters['family'],
-                parentField: 'familyId',
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildFilterDropdown(
-                'species',
-                'Loài',
-                filterData['species'] as List<Species>,
-                selectedFilters['species'],
-                parentValue: selectedFilters['genus'],
-                parentField: 'genusId',
-              ),
-            ),
-          ],
-        ),
+              const SizedBox(width: 16),
+              if (selectedFilters['family'] != null)
+                Expanded(
+                  child: _buildFilterDropdown(
+                    'genus',
+                    'Chi',
+                    filterData['genera'] ?? [],
+                    selectedFilters['genus'],
+                    parentValue: selectedFilters['family'],
+                    parentField: 'family_id',
+                  ),
+                )
+              else
+                const Expanded(child: SizedBox()),
+              const SizedBox(width: 16),
+              if (selectedFilters['genus'] != null)
+                Expanded(
+                  child: _buildFilterDropdown(
+                    'species',
+                    'Loài',
+                    filterData['species'] ?? [],
+                    selectedFilters['species'],
+                    parentValue: selectedFilters['genus'],
+                    parentField: 'genus_id',
+                  ),
+                )
+              else
+                const Expanded(child: SizedBox()),
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -511,26 +537,98 @@ class FilterContent extends StatelessWidget {
       return const SizedBox();
     }
 
-    final filteredItems = parentValue != null && parentField != null
-        ? items
-            .where(
-                (item) => item.toJson()[parentField].toString() == parentValue)
-            .toList()
-        : items;
+    List<dynamic> filteredItems = items;
+    if (parentValue != null && parentField != null) {
+      filteredItems = items.where((item) {
+        try {
+          final itemMap = item.toJson();
+          final fieldValue = itemMap[parentField]?.toString();
+          return fieldValue != null && fieldValue == parentValue;
+        } catch (e) {
+          debugPrint('Error filtering $filterType items: $e');
+          return false;
+        }
+      }).toList();
+    }
 
     if (filteredItems.isEmpty) {
       return const SizedBox();
     }
 
+    // Create unique items list
+    final uniqueItems = filteredItems
+        .map((item) {
+          try {
+            final itemMap = item.toJson();
+            String? value;
+            String? name;
+
+            // Handle different field names based on filter type
+            switch (filterType) {
+              case 'division':
+                value = itemMap['division_id']?.toString();
+                name = itemMap['name']?.toString();
+                break;
+              case 'class':
+                value = itemMap['class_id']?.toString();
+                name = itemMap['name']?.toString();
+                break;
+              case 'order':
+                value = itemMap['order_id']?.toString();
+                name = itemMap['name']?.toString();
+                break;
+              case 'family':
+                value = itemMap['family_id']?.toString();
+                name = itemMap['name']?.toString();
+                break;
+              case 'genus':
+                value = itemMap['genus_id']?.toString();
+                name = itemMap['name']?.toString();
+                break;
+              case 'species':
+                value = itemMap['species_id']?.toString();
+                name = itemMap['name']?.toString();
+                break;
+            }
+
+            if (value != null && name != null) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(name),
+              );
+            }
+            return null;
+          } catch (e) {
+            debugPrint('Error processing item in $filterType dropdown: $e');
+            return null;
+          }
+        })
+        .whereType<DropdownMenuItem<String>>()
+        .toList();
+
+    // Remove duplicates based on value
+    final uniqueValues = <String>{};
+    final finalItems = uniqueItems.where((item) {
+      if (item.value != null && uniqueValues.add(item.value!)) {
+        return true;
+      }
+      return false;
+    }).toList();
+
+    if (finalItems.isEmpty) {
+      return const SizedBox();
+    }
+
+    // Debug print
+    debugPrint('$filterType dropdown items: ${finalItems.length}');
+    debugPrint('Selected value: $selectedValue');
+    debugPrint(
+        'Available values: ${finalItems.map((e) => e.value).join(', ')}');
+
     return FilterDropdown(
       label: label,
       value: selectedValue,
-      items: filteredItems
-          .map((item) => DropdownMenuItem<String>(
-                value: item.toJson()['${filterType}Id'].toString(),
-                child: Text(item.toJson()['name']),
-              ))
-          .toList(),
+      items: finalItems,
       onChanged: (value) => onFilterChange(filterType, value),
       onClear: () => onClearFilter(filterType),
       isLoading: isLoadingFilters,
@@ -558,9 +656,13 @@ class FilterDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Validate value against items
+    final validValue = items.any((item) => item.value == value) ? value : null;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
@@ -580,7 +682,7 @@ class FilterDropdown extends StatelessWidget {
                     color: Theme.of(context).primaryColor,
                   ),
                 ),
-                if (value != null) ...[
+                if (validValue != null) ...[
                   const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.close, size: 16),
@@ -595,7 +697,7 @@ class FilterDropdown extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            value: value,
+            value: validValue,
             decoration: InputDecoration(
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -620,7 +722,11 @@ class FilterDropdown extends StatelessWidget {
               isDense: true,
             ),
             items: items,
-            onChanged: onChanged,
+            onChanged: (newValue) {
+              if (newValue != null) {
+                onChanged(newValue);
+              }
+            },
             isExpanded: true,
             hint: isLoading
                 ? const Text('Đang tải...', style: TextStyle(fontSize: 14))

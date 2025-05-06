@@ -4,6 +4,8 @@ import '../../models/user.dart';
 import '../../services/advice_service.dart';
 import '../../services/auth_service.dart';
 import 'package:intl/intl.dart';
+import 'advice_edit_screen.dart';
+import 'advice_create_screen.dart';
 
 class ManageAdviceScreen extends StatefulWidget {
   final int expertId;
@@ -52,12 +54,7 @@ class _ManageAdviceScreenState extends State<ManageAdviceScreen> {
   }
 
   Future<void> _editAdvice(Advice advice) async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Chức năng chỉnh sửa đang được phát triển'),
-        backgroundColor: Colors.orange,
-      ),
-    );
+    _navigateToEditScreen(advice);
   }
 
   Future<void> _deleteAdvice(Advice advice) async {
@@ -111,6 +108,37 @@ class _ManageAdviceScreenState extends State<ManageAdviceScreen> {
       return DateFormat('dd/MM/yyyy').format(date);
     } catch (e) {
       return dateString;
+    }
+  }
+
+  void _navigateToEditScreen(Advice advice) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AdviceEditScreen(
+          advice: advice,
+          expertId: widget.expertId,
+        ),
+      ),
+    );
+
+    if (result == true) {
+      _loadAdvices(); // Reload the list if advice was updated
+    }
+  }
+
+  void _navigateToCreateScreen() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AdviceCreateScreen(
+          expertId: widget.expertId,
+        ),
+      ),
+    );
+
+    if (result == true) {
+      _loadAdvices(); // Reload the list if new advice was created
     }
   }
 
@@ -201,14 +229,7 @@ class _ManageAdviceScreenState extends State<ManageAdviceScreen> {
                       },
                     ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Chức năng tạo lời khuyên đang được phát triển'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        },
+        onPressed: _navigateToCreateScreen,
         child: const Icon(Icons.add),
       ),
     );

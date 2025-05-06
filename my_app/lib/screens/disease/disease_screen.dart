@@ -99,8 +99,19 @@ class _DiseaseScreenState extends State<DiseaseScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
+            Container(
               padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    spreadRadius: 1,
+                    blurRadius: 3,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
               child: Column(
                 children: [
                   TextField(
@@ -162,16 +173,6 @@ class _DiseaseScreenState extends State<DiseaseScreen> {
                 ],
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Text(
-                'Các bệnh thường gặp',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -180,12 +181,16 @@ class _DiseaseScreenState extends State<DiseaseScreen> {
                           child: Text('Không tìm thấy bệnh phù hợp'),
                         )
                       : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.all(16),
                           itemCount: _filteredDiseases.length,
                           itemBuilder: (context, index) {
                             final disease = _filteredDiseases[index];
                             return Card(
-                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              margin: const EdgeInsets.only(bottom: 16),
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                               child: InkWell(
                                 onTap: () {
                                   Navigator.push(
@@ -197,137 +202,89 @@ class _DiseaseScreenState extends State<DiseaseScreen> {
                                     ),
                                   );
                                 },
-                                child: ExpansionTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor: Colors.red,
-                                    child: ClipOval(
-                                      child: SizedBox.expand(
-                                        child: Image.asset(
-                                          'images/diseases/infec.jpg',
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  title: Text(disease.name),
-                                  subtitle: Text(disease.symptoms ??
-                                      'Không có triệu chứng'),
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.all(16.0),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
                                         children: [
-                                          if (disease.symptoms != null) ...[
-                                            const Text(
-                                              'Triệu chứng:',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
+                                          CircleAvatar(
+                                            radius: 25,
+                                            backgroundColor:
+                                                Colors.red.shade100,
+                                            child: ClipOval(
+                                              child: SizedBox.expand(
+                                                child: Image.asset(
+                                                  'images/diseases/infec.jpg',
+                                                  fit: BoxFit.cover,
+                                                ),
                                               ),
                                             ),
-                                            const SizedBox(height: 8),
-                                            Text(disease.symptoms!),
-                                            const SizedBox(height: 16),
-                                          ],
-                                          if (disease.instructions != null) ...[
-                                            const Text(
-                                              'Hướng dẫn điều trị:',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Text(disease.instructions!),
-                                            const SizedBox(height: 16),
-                                          ],
-                                          if (disease.images.isNotEmpty) ...[
-                                            const Text(
-                                              'Hình ảnh:',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            SizedBox(
-                                              height: 120,
-                                              child: ListView.builder(
-                                                scrollDirection:
-                                                    Axis.horizontal,
-                                                itemCount:
-                                                    disease.images.length,
-                                                itemBuilder:
-                                                    (context, imgIndex) {
-                                                  final image =
-                                                      disease.images[imgIndex];
-                                                  return Card(
-                                                    margin:
-                                                        const EdgeInsets.only(
-                                                            right: 8),
-                                                    child: SizedBox(
-                                                      width: 100,
-                                                      child: Column(
-                                                        children: [
-                                                          ClipRRect(
-                                                            borderRadius:
-                                                                const BorderRadius
-                                                                    .vertical(
-                                                              top: Radius
-                                                                  .circular(4),
-                                                            ),
-                                                            child:
-                                                                Image.network(
-                                                              image.url,
-                                                              height: 70,
-                                                              width: double
-                                                                  .infinity,
-                                                              fit: BoxFit.cover,
-                                                              errorBuilder:
-                                                                  (context,
-                                                                      error,
-                                                                      stackTrace) {
-                                                                return Image
-                                                                    .asset(
-                                                                  '',
-                                                                  height: 70,
-                                                                  width: double
-                                                                      .infinity,
-                                                                  fit: BoxFit
-                                                                      .cover,
-                                                                );
-                                                              },
-                                                            ),
-                                                          ),
-                                                          Padding(
-                                                            padding:
-                                                                const EdgeInsets
-                                                                    .all(4.0),
-                                                            child: Text(
-                                                              image.name,
-                                                              style:
-                                                                  const TextStyle(
-                                                                      fontSize:
-                                                                          12),
-                                                              textAlign:
-                                                                  TextAlign
-                                                                      .center,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
+                                          ),
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  disease.name,
+                                                  style: const TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                if (disease.symptoms !=
+                                                    null) ...[
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    disease.symptoms!,
+                                                    style: TextStyle(
+                                                      color: Colors.grey[600],
+                                                      fontSize: 14,
                                                     ),
-                                                  );
-                                                },
-                                              ),
+                                                    maxLines: 2,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ],
+                                              ],
                                             ),
-                                          ],
+                                          ),
                                         ],
                                       ),
-                                    ),
-                                  ],
+                                      if (disease.images.isNotEmpty) ...[
+                                        const SizedBox(height: 12),
+                                        SizedBox(
+                                          height: 100,
+                                          child: ListView.builder(
+                                            scrollDirection: Axis.horizontal,
+                                            itemCount: disease.images.length,
+                                            itemBuilder: (context, imgIndex) {
+                                              final image =
+                                                  disease.images[imgIndex];
+                                              return Container(
+                                                margin: const EdgeInsets.only(
+                                                    right: 8),
+                                                width: 100,
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  image: DecorationImage(
+                                                    image:
+                                                        NetworkImage(image.url),
+                                                    fit: BoxFit.cover,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             );

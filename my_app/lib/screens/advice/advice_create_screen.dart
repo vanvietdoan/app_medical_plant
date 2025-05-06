@@ -6,21 +6,19 @@ import '../../services/advice_service.dart';
 import '../../services/plant_service.dart';
 import '../../services/disease_service.dart';
 
-class AdviceEditScreen extends StatefulWidget {
-  final advice_model.Advice advice;
+class AdviceCreateScreen extends StatefulWidget {
   final int expertId;
 
-  const AdviceEditScreen({
+  const AdviceCreateScreen({
     super.key,
-    required this.advice,
     required this.expertId,
   });
 
   @override
-  State<AdviceEditScreen> createState() => _AdviceEditScreenState();
+  State<AdviceCreateScreen> createState() => _AdviceCreateScreenState();
 }
 
-class _AdviceEditScreenState extends State<AdviceEditScreen> {
+class _AdviceCreateScreenState extends State<AdviceCreateScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
@@ -55,26 +53,6 @@ class _AdviceEditScreenState extends State<AdviceEditScreen> {
       final plants = await _plantService.getPlants();
       final diseases = await _diseaseService.getDiseases();
 
-      // Set initial values
-      _titleController.text = widget.advice.title ?? '';
-      _contentController.text = widget.advice.content ?? '';
-
-      // Find matching plant in the loaded plants list
-      if (widget.advice.plant != null) {
-        _selectedPlant = plants.firstWhere(
-          (p) => p.plantId == widget.advice.plant!.plantId,
-          orElse: () => plants.first,
-        );
-      }
-
-      // Find matching disease in the loaded diseases list
-      if (widget.advice.disease != null) {
-        _selectedDisease = diseases.firstWhere(
-          (d) => d.disease_id == widget.advice.disease!.diseaseId,
-          orElse: () => diseases.first,
-        );
-      }
-
       setState(() {
         _plants = plants;
         _diseases = diseases;
@@ -97,18 +75,18 @@ class _AdviceEditScreenState extends State<AdviceEditScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      await _adviceService.updateAdvice(
-        widget.advice.adviceId,
+      await _adviceService.createAdvice(
         title: _titleController.text,
         content: _contentController.text,
         plantId: _selectedPlant?.plantId ?? 0,
         diseaseId: _selectedDisease?.disease_id ?? 0,
+        userId: widget.expertId,
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Cập nhật lời khuyên thành công'),
+            content: Text('Tạo lời khuyên thành công'),
             backgroundColor: Colors.green,
           ),
         );
@@ -118,7 +96,7 @@ class _AdviceEditScreenState extends State<AdviceEditScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi khi cập nhật lời khuyên: $e'),
+            content: Text('Lỗi khi tạo lời khuyên: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -130,7 +108,7 @@ class _AdviceEditScreenState extends State<AdviceEditScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chỉnh sửa lời khuyên'),
+        title: const Text('Tạo lời khuyên'),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -222,7 +200,7 @@ class _AdviceEditScreenState extends State<AdviceEditScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       child: const Text(
-                        'Cập nhật lời khuyên',
+                        'Tạo lời khuyên',
                         style: TextStyle(fontSize: 16),
                       ),
                     ),

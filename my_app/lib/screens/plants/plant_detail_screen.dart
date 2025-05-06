@@ -94,26 +94,74 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
   }
 }
 
-class PlantImage extends StatelessWidget {
+class PlantImage extends StatefulWidget {
   final plant_model.Plant plant;
 
   const PlantImage({super.key, required this.plant});
 
   @override
+  State<PlantImage> createState() => _PlantImageState();
+}
+
+class _PlantImageState extends State<PlantImage> {
+  int _selectedIndex = 0;
+
+  @override
   Widget build(BuildContext context) {
-    if (plant.images == null || plant.images!.isEmpty) {
+    if (widget.plant.images == null || widget.plant.images!.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    return Container(
-      height: 200,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: NetworkImage(plant.images!.first.url),
-          fit: BoxFit.cover,
+    return Column(
+      children: [
+        // Main large image
+        Container(
+          height: 200,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: NetworkImage(widget.plant.images![_selectedIndex].url),
+              fit: BoxFit.cover,
+            ),
+          ),
         ),
-      ),
+        // Thumbnails row
+        Container(
+          height: 80,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: widget.plant.images!.length,
+            itemBuilder: (context, index) {
+              final isSelected = index == _selectedIndex;
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedIndex = index;
+                  });
+                },
+                child: Container(
+                  width: 80,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: isSelected
+                          ? Theme.of(context).primaryColor
+                          : Colors.grey,
+                      width: isSelected ? 2 : 1,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                    image: DecorationImage(
+                      image: NetworkImage(widget.plant.images![index].url),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

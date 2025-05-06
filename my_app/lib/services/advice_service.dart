@@ -56,7 +56,8 @@ class AdviceService {
       rethrow;
     }
   }
-   Future<List<Advice>> getAdvicesByUser(int userId,
+
+  Future<List<Advice>> getAdvicesByUser(int userId,
       {int page = 1, int limit = 10}) async {
     try {
       final response = await _apiService
@@ -88,11 +89,13 @@ class AdviceService {
       rethrow;
     }
   }
+
   Future<List<ListUsetIDMostAdvice>> getUserMostAdvice() async {
     try {
-      final response = await _apiService.get<dynamic>('/advice/user/most-advice');
+      final response =
+          await _apiService.get<dynamic>('/advice/user/most-advice');
       final List<dynamic> data =
-          response is Map<String, dynamic> ? response['data'] : response; 
+          response is Map<String, dynamic> ? response['data'] : response;
       return data.map((json) => ListUsetIDMostAdvice.fromJson(json)).toList();
     } catch (e) {
       if (kDebugMode) {
@@ -101,6 +104,7 @@ class AdviceService {
       rethrow;
     }
   }
+
   /// Tìm kiếm lời khuyên
   Future<List<Advice>> searchAdvices(String query,
       {int page = 1, int limit = 10}) async {
@@ -155,8 +159,10 @@ class AdviceService {
         requestData,
       );
 
-      return Advice.fromJson(
-          response is Map<String, dynamic> ? response['data'] : response);
+      if (response is Map<String, dynamic>) {
+        return Advice.fromJson(response['data'] ?? response);
+      }
+      return Advice.fromJson(response);
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Lỗi tạo lời khuyên: $e');
@@ -184,8 +190,11 @@ class AdviceService {
         '/advice/$id',
         requestData,
       );
-      return Advice.fromJson(
-          response is Map<String, dynamic> ? response['data'] : response);
+
+      if (response is Map<String, dynamic>) {
+        return Advice.fromJson(response['data'] ?? response);
+      }
+      return Advice.fromJson(response);
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Lỗi cập nhật lời khuyên: $e');
@@ -193,8 +202,4 @@ class AdviceService {
       rethrow;
     }
   }
-
-
-
-  
 }
