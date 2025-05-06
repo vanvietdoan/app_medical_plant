@@ -22,15 +22,55 @@ class ManageAdviceScreen extends StatefulWidget {
 
 class _ManageAdviceScreenState extends State<ManageAdviceScreen> {
   final _adviceService = AdviceService();
+  final _searchController = TextEditingController();
 
   List<Advice> _advices = [];
+  List<Advice> _filteredAdvices = [];
   bool _isLoading = true;
   String? _errorMessage;
+  String _searchQuery = '';
+  int? _selectedPlantId;
+  int? _selectedDiseaseId;
+
+  // Get unique plants and diseases from advices
+  List<Map<String, dynamic>> get _uniquePlants {
+    final Map<int, Map<String, dynamic>> uniqueMap = {};
+    for (var advice in _advices) {
+      if (advice.plant != null) {
+        uniqueMap[advice.plant!.plantId] = {
+          'id': advice.plant!.plantId,
+          'name': advice.plant!.name,
+        };
+      }
+    }
+    return uniqueMap.values.toList()
+      ..sort((a, b) => (a['name'] as String).compareTo(b['name'] as String));
+  }
+
+  List<Map<String, dynamic>> get _uniqueDiseases {
+    final Map<int, Map<String, dynamic>> uniqueMap = {};
+    for (var advice in _advices) {
+      if (advice.disease != null) {
+        uniqueMap[advice.disease!.diseaseId] = {
+          'id': advice.disease!.diseaseId,
+          'name': advice.disease!.name,
+        };
+      }
+    }
+    return uniqueMap.values.toList()
+      ..sort((a, b) => (a['name'] as String).compareTo(b['name'] as String));
+  }
 
   @override
   void initState() {
     super.initState();
     _loadAdvices();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadAdvices() async {
@@ -44,6 +84,7 @@ class _ManageAdviceScreenState extends State<ManageAdviceScreen> {
       final advices = await _adviceService.getAdvicesByUser(widget.expertId);
       setState(() {
         _advices = advices;
+        _filterAdvices();
         _isLoading = false;
       });
     } catch (e) {
@@ -52,6 +93,40 @@ class _ManageAdviceScreenState extends State<ManageAdviceScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  void _filterAdvices() {
+    setState(() {
+      _filteredAdvices = _advices.where((advice) {
+        // Search in title and content
+        final matchesSearch = _searchQuery.isEmpty ||
+            (advice.title?.toLowerCase().contains(_searchQuery.toLowerCase()) ??
+                false) ||
+            (advice.content
+                    ?.toLowerCase()
+                    .contains(_searchQuery.toLowerCase()) ??
+                false);
+
+        // Filter by plant
+        final matchesPlant = _selectedPlantId == null ||
+            advice.plant?.plantId == _selectedPlantId;
+
+        // Filter by disease
+        final matchesDisease = _selectedDiseaseId == null ||
+            advice.disease?.diseaseId == _selectedDiseaseId;
+
+        return matchesSearch && matchesPlant && matchesDisease;
+      }).toList();
+
+      // Sort by date (newest first)
+      _filteredAdvices.sort((a, b) {
+        final dateA =
+            a.createdAt != null ? DateTime.parse(a.createdAt!) : DateTime(0);
+        final dateB =
+            b.createdAt != null ? DateTime.parse(b.createdAt!) : DateTime(0);
+        return dateB.compareTo(dateA);
+      });
+    });
   }
 
   Future<void> _editAdvice(Advice advice) async {
@@ -149,86 +224,207 @@ class _ManageAdviceScreenState extends State<ManageAdviceScreen> {
       appBar: AppBar(
         title: const Text('Quản lý lời khuyên'),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _errorMessage!,
-                        style: const TextStyle(color: Colors.red),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadAdvices,
-                        child: const Text('Thử lại'),
-                      ),
-                    ],
-                  ),
-                )
-              : _advices.isEmpty
-                  ? const Center(
-                      child: Text('Bạn chưa có lời khuyên nào'),
-                    )
-                  : ListView.builder(
-                      itemCount: _advices.length,
-                      itemBuilder: (context, index) {
-                        final advice = _advices[index];
-                        return Card(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          child: ListTile(
-                            title: Text(advice.title ?? 'Không có tiêu đề'),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(advice.content ?? ''),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Cây: ${advice.plant?.name ?? 'Không xác định'}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                Text(
-                                  'Bệnh: ${advice.disease?.name ?? 'Không xác định'}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                Text(
-                                  'Ngày tạo: ${_formatDate(advice.createdAt)}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit),
-                                  onPressed: () => _editAdvice(advice),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete),
-                                  onPressed: () => _deleteAdvice(advice),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // Search bar
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Tìm kiếm theo tiêu đề hoặc nội dung',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchQuery = '';
+                                _filterAdvices();
+                              });
+                            },
+                          )
+                        : null,
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                      _filterAdvices();
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                // Filter dropdowns
+                Row(
+                  children: [
+                    // Plant filter dropdown
+                    Expanded(
+                      child: DropdownButtonFormField<int>(
+                        value: _selectedPlantId,
+                        decoration: const InputDecoration(
+                          labelText: 'Lọc theo cây',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                        ),
+                        items: [
+                          const DropdownMenuItem<int>(
+                            value: null,
+                            child: Text('Tất cả cây'),
+                          ),
+                          ..._uniquePlants.map((plant) {
+                            return DropdownMenuItem<int>(
+                              value: plant['id'] as int,
+                              child: Text(plant['name'] as String),
+                            );
+                          }),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedPlantId = value;
+                            _filterAdvices();
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Disease filter dropdown
+                    Expanded(
+                      child: DropdownButtonFormField<int>(
+                        value: _selectedDiseaseId,
+                        decoration: const InputDecoration(
+                          labelText: 'Lọc theo bệnh',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                        ),
+                        items: [
+                          const DropdownMenuItem<int>(
+                            value: null,
+                            child: Text('Tất cả bệnh'),
+                          ),
+                          ..._uniqueDiseases.map((disease) {
+                            return DropdownMenuItem<int>(
+                              value: disease['id'] as int,
+                              child: Text(disease['name'] as String),
+                            );
+                          }),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedDiseaseId = value;
+                            _filterAdvices();
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _errorMessage != null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _errorMessage!,
+                              style: const TextStyle(color: Colors.red),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _loadAdvices,
+                              child: const Text('Thử lại'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : _filteredAdvices.isEmpty
+                        ? const Center(
+                            child: Text('Không tìm thấy lời khuyên nào'),
+                          )
+                        : ListView.builder(
+                            itemCount: _filteredAdvices.length,
+                            itemBuilder: (context, index) {
+                              final advice = _filteredAdvices[index];
+                              return Card(
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                child: ExpansionTile(
+                                  title: Text(
+                                    advice.title ?? 'Không có tiêu đề',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Cây: ${advice.plant?.name ?? 'Không xác định'}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Bệnh: ${advice.disease?.name ?? 'Không xác định'}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Ngày tạo: ${_formatDate(advice.createdAt)}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.edit),
+                                        onPressed: () => _editAdvice(advice),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete),
+                                        onPressed: () => _deleteAdvice(advice),
+                                      ),
+                                    ],
+                                  ),
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: Text(
+                                        advice.content ?? '',
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _navigateToCreateScreen,
         child: const Icon(Icons.add),

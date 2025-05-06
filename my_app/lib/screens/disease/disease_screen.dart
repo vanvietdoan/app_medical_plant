@@ -20,6 +20,35 @@ class _DiseaseScreenState extends State<DiseaseScreen> {
   List<String> _selectedSymptoms = [];
   bool _isLoading = true;
   String _searchQuery = '';
+  bool _showFilter = false;
+  int _currentPage = 0;
+  static const int _cardsPerPage = 12;
+
+  List<Disease> get _paginatedDiseases {
+    final startIndex = _currentPage * _cardsPerPage;
+    final endIndex = startIndex + _cardsPerPage;
+    return _filteredDiseases.length > startIndex
+        ? _filteredDiseases.sublist(
+            startIndex,
+            endIndex > _filteredDiseases.length
+                ? _filteredDiseases.length
+                : endIndex)
+        : [];
+  }
+
+  int get _totalPages => (_filteredDiseases.length / _cardsPerPage).ceil();
+
+  void _nextPage() {
+    if (_currentPage < _totalPages - 1) {
+      setState(() => _currentPage++);
+    }
+  }
+
+  void _previousPage() {
+    if (_currentPage > 0) {
+      setState(() => _currentPage--);
+    }
+  }
 
   @override
   void initState() {
@@ -77,6 +106,7 @@ class _DiseaseScreenState extends State<DiseaseScreen> {
 
         return matchesSearch && matchesSymptoms;
       }).toList();
+      _currentPage = 0; // Reset to first page when filtering
     });
   }
 
@@ -114,38 +144,45 @@ class _DiseaseScreenState extends State<DiseaseScreen> {
               ),
               child: Column(
                 children: [
-                  TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Tìm kiếm bệnh....',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Tìm kiếm bệnh....',
+                            prefixIcon: const Icon(Icons.search),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            contentPadding:
+                                const EdgeInsets.symmetric(vertical: 0),
+                          ),
+                          onChanged: (value) {
+                            setState(() => _searchQuery = value);
+                            _filterDiseases();
+                          },
+                        ),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                    ),
-                    onChanged: (value) {
-                      setState(() => _searchQuery = value);
-                      _filterDiseases();
-                    },
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () {
+                          setState(() => _showFilter = !_showFilter);
+                        },
+                        icon: Icon(
+                          _showFilter
+                              ? Icons.filter_list_off
+                              : Icons.filter_list,
+                          color: _showFilter ? Colors.green : Colors.grey,
+                        ),
+                        tooltip: _showFilter ? 'Ẩn bộ lọc' : 'Hiện bộ lọc',
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  if (_selectedSymptoms.isNotEmpty) ...[
+                  if (_showFilter) ...[
+                    const SizedBox(height: 16),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: _selectedSymptoms
-                          .map((symptom) => Chip(
-                                label: Text(symptom),
-                                deleteIcon: const Icon(Icons.close, size: 18),
-                                onDeleted: () => _toggleSymptom(symptom),
-                              ))
-                          .toList(),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
                       children: [
                         FilterChip(
                           label: const Text('Tất cả'),
@@ -155,21 +192,14 @@ class _DiseaseScreenState extends State<DiseaseScreen> {
                             _filterDiseases();
                           },
                         ),
-                        ..._symptoms
-                            .map((symptom) => Padding(
-                                  padding: const EdgeInsets.only(left: 8.0),
-                                  child: FilterChip(
-                                    label: Text(symptom),
-                                    selected:
-                                        _selectedSymptoms.contains(symptom),
-                                    onSelected: (selected) =>
-                                        _toggleSymptom(symptom),
-                                  ),
-                                ))
-                            .toList(),
+                        ..._symptoms.map((symptom) => FilterChip(
+                              label: Text(symptom),
+                              selected: _selectedSymptoms.contains(symptom),
+                              onSelected: (selected) => _toggleSymptom(symptom),
+                            )),
                       ],
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -180,115 +210,124 @@ class _DiseaseScreenState extends State<DiseaseScreen> {
                       ? const Center(
                           child: Text('Không tìm thấy bệnh phù hợp'),
                         )
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _filteredDiseases.length,
-                          itemBuilder: (context, index) {
-                            final disease = _filteredDiseases[index];
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: InkWell(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => DiseaseDetailScreen(
-                                        diseaseId: disease.disease_id,
-                                      ),
+                      : Column(
+                          children: [
+                            Expanded(
+                              child: GridView.builder(
+                                padding: const EdgeInsets.all(16),
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 3,
+                                  childAspectRatio: 1.0,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                ),
+                                itemCount: _paginatedDiseases.length,
+                                itemBuilder: (context, index) {
+                                  final disease = _paginatedDiseases[index];
+                                  return Card(
+                                    elevation: 2,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
-                                  );
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
+                                    child: InkWell(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                DiseaseDetailScreen(
+                                              diseaseId: disease.disease_id,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          CircleAvatar(
-                                            radius: 25,
-                                            backgroundColor:
-                                                Colors.red.shade100,
-                                            child: ClipOval(
-                                              child: SizedBox.expand(
-                                                child: Image.asset(
-                                                  'images/diseases/infec.jpg',
+                                          if (disease.images.isNotEmpty)
+                                            Expanded(
+                                              child: ClipRRect(
+                                                borderRadius:
+                                                    const BorderRadius.vertical(
+                                                  top: Radius.circular(12),
+                                                ),
+                                                child: Image.network(
+                                                  disease.images.first.url,
+                                                  width: double.infinity,
                                                   fit: BoxFit.cover,
+                                                  errorBuilder: (context, error,
+                                                      stackTrace) {
+                                                    return Container(
+                                                      color: Colors.grey[200],
+                                                      child: const Center(
+                                                        child: Icon(
+                                                          Icons.error_outline,
+                                                          size: 30,
+                                                          color: Colors.grey,
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
                                                 ),
                                               ),
                                             ),
-                                          ),
-                                          const SizedBox(width: 16),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  disease.name,
-                                                  style: const TextStyle(
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                                if (disease.symptoms !=
-                                                    null) ...[
-                                                  const SizedBox(height: 4),
-                                                  Text(
-                                                    disease.symptoms!,
-                                                    style: TextStyle(
-                                                      color: Colors.grey[600],
-                                                      fontSize: 14,
-                                                    ),
-                                                    maxLines: 2,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                  ),
-                                                ],
-                                              ],
+                                          Padding(
+                                            padding: const EdgeInsets.all(8),
+                                            child: Text(
+                                              disease.name,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              textAlign: TextAlign.center,
                                             ),
                                           ),
                                         ],
                                       ),
-                                      if (disease.images.isNotEmpty) ...[
-                                        const SizedBox(height: 12),
-                                        SizedBox(
-                                          height: 100,
-                                          child: ListView.builder(
-                                            scrollDirection: Axis.horizontal,
-                                            itemCount: disease.images.length,
-                                            itemBuilder: (context, imgIndex) {
-                                              final image =
-                                                  disease.images[imgIndex];
-                                              return Container(
-                                                margin: const EdgeInsets.only(
-                                                    right: 8),
-                                                width: 100,
-                                                decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                  image: DecorationImage(
-                                                    image:
-                                                        NetworkImage(image.url),
-                                                    fit: BoxFit.cover,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            if (_totalPages > 1)
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    IconButton(
+                                      onPressed: _currentPage > 0
+                                          ? _previousPage
+                                          : null,
+                                      icon: const Icon(Icons.chevron_left),
+                                      color: _currentPage > 0
+                                          ? Colors.green
+                                          : Colors.grey,
+                                    ),
+                                    Text(
+                                      'Trang ${_currentPage + 1} / $_totalPages',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      onPressed: _currentPage < _totalPages - 1
+                                          ? _nextPage
+                                          : null,
+                                      icon: const Icon(Icons.chevron_right),
+                                      color: _currentPage < _totalPages - 1
+                                          ? Colors.green
+                                          : Colors.grey,
+                                    ),
+                                  ],
                                 ),
                               ),
-                            );
-                          },
+                          ],
                         ),
             ),
           ],

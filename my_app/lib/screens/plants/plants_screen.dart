@@ -35,6 +35,25 @@ class _PlantsScreenState extends State<PlantsScreen> {
   List<Plant> _allPlants = [];
   bool _isLoading = false;
   Timer? _searchDebounce;
+  int _currentPage = 0;
+  static const int _cardsPerPage = 12;
+
+  List<Plant> get _paginatedPlants {
+    final startIndex = _currentPage * _cardsPerPage;
+    final endIndex = startIndex + _cardsPerPage;
+    return _plants.length > startIndex
+        ? _plants.sublist(
+            startIndex, endIndex > _plants.length ? _plants.length : endIndex)
+        : [];
+  }
+
+  int get _totalPages => (_plants.length / _cardsPerPage).ceil();
+
+  void _goToPage(int page) {
+    if (page >= 0 && page < _totalPages) {
+      setState(() => _currentPage = page);
+    }
+  }
 
   // Filter states
   final Map<String, String?> _selectedFilters = {
@@ -310,9 +329,12 @@ class _PlantsScreenState extends State<PlantsScreen> {
               child: RefreshIndicator(
                 onRefresh: _onRefresh,
                 child: PlantsGrid(
-                  plants: _plants,
+                  plants: _paginatedPlants,
                   isLoading: _isLoading,
                   searchText: _searchController.text,
+                  currentPage: _currentPage,
+                  totalPages: _totalPages,
+                  onPageChanged: _goToPage,
                 ),
               ),
             ),
@@ -744,12 +766,18 @@ class PlantsGrid extends StatelessWidget {
   final List<Plant> plants;
   final bool isLoading;
   final String searchText;
+  final int currentPage;
+  final int totalPages;
+  final Function(int) onPageChanged;
 
   const PlantsGrid({
     super.key,
     required this.plants,
     required this.isLoading,
     required this.searchText,
+    required this.currentPage,
+    required this.totalPages,
+    required this.onPageChanged,
   });
 
   @override
@@ -782,19 +810,77 @@ class PlantsGrid extends StatelessWidget {
           const SizedBox(height: 16),
           plants.isEmpty && !isLoading
               ? const EmptyState()
-              : GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    childAspectRatio: 0.75,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                  ),
-                  itemCount: plants.length,
-                  itemBuilder: (context, index) {
-                    return PlantCard(plant: plants[index]);
-                  },
+              : Column(
+                  children: [
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        childAspectRatio: 0.75,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                      ),
+                      itemCount: plants.length,
+                      itemBuilder: (context, index) {
+                        return PlantCard(plant: plants[index]);
+                      },
+                    ),
+                    if (totalPages > 1) ...[
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            onPressed: currentPage > 0
+                                ? () => onPageChanged(currentPage - 1)
+                                : null,
+                            icon: const Icon(Icons.chevron_left),
+                            color: currentPage > 0 ? Colors.green : Colors.grey,
+                          ),
+                          const SizedBox(width: 8),
+                          ...List.generate(
+                            totalPages,
+                            (index) => Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 4),
+                              child: TextButton(
+                                onPressed: () => onPageChanged(index),
+                                style: TextButton.styleFrom(
+                                  backgroundColor: currentPage == index
+                                      ? Colors.green
+                                      : Colors.transparent,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: Text(
+                                  '${index + 1}',
+                                  style: TextStyle(
+                                    color: currentPage == index
+                                        ? Colors.white
+                                        : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            onPressed: currentPage < totalPages - 1
+                                ? () => onPageChanged(currentPage + 1)
+                                : null,
+                            icon: const Icon(Icons.chevron_right),
+                            color: currentPage < totalPages - 1
+                                ? Colors.green
+                                : Colors.grey,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
         ],
       ),

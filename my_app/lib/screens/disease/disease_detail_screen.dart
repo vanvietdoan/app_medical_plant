@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../models/disease.dart' as disease_model;
-import '../../models/advice.dart';
+import '../../models/advice.dart' hide User;
 import '../../models/user.dart';
 import '../../services/disease_service.dart';
 import '../../services/advice_service.dart';
+import '../../services/auth_service.dart';
 import '../../screens/plants/plant_detail_screen.dart';
 import '../../screens/profile/visit_profile.dart';
+import '../../screens/advice/advice_create_screen.dart';
+import '../../screens/advice/advice_edit_screen.dart';
 import '../../widgets/custom_bottom_nav.dart';
 import 'package:intl/intl.dart';
 
@@ -24,14 +27,17 @@ class DiseaseDetailScreen extends StatefulWidget {
 class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
   final DiseaseService _diseaseService = DiseaseService();
   final AdviceService _adviceService = AdviceService();
+  final AuthService _authService = AuthService();
   disease_model.Disease? _disease;
   List<Advice> _advices = [];
   bool _isLoading = true;
+  User? _currentUser;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _loadCurrentUser();
   }
 
   Future<void> _loadData() async {
@@ -53,6 +59,13 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
         );
       }
     }
+  }
+
+  Future<void> _loadCurrentUser() async {
+    final user = await _authService.currentUser;
+    setState(() {
+      _currentUser = user;
+    });
   }
 
   @override
@@ -103,7 +116,10 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
                           ),
                           Expanded(
                             flex: 1,
-                            child: AdviceList(advices: _advices),
+                            child: AdviceList(
+                              advices: _advices,
+                              diseaseId: widget.diseaseId,
+                            ),
                           ),
                         ],
                       ),
@@ -187,32 +203,129 @@ class DiseaseDetails extends StatelessWidget {
   }
 }
 
-class AdviceList extends StatelessWidget {
+class AdviceList extends StatefulWidget {
   final List<Advice> advices;
+  final int diseaseId;
 
-  const AdviceList({super.key, required this.advices});
+  const AdviceList({
+    super.key,
+    required this.advices,
+    required this.diseaseId,
+  });
+
+  @override
+  State<AdviceList> createState() => _AdviceListState();
+}
+
+class _AdviceListState extends State<AdviceList> {
+  final _authService = AuthService();
+  late List<Advice> _advices;
+  User? _currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _advices = widget.advices;
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    final user = await _authService.currentUser;
+    setState(() {
+      _currentUser = user;
+    });
+  }
+
+  Future<void> _navigateToCreateScreen() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AdviceCreateScreen(
+          expertId: _currentUser!.id,
+          plantId: null,
+          diseaseId: widget.diseaseId,
+          fromPlantDetail: false,
+        ),
+      ),
+    );
+
+    if (result == true && mounted) {
+      // Reload the advice list
+      final advices =
+          await AdviceService().getAdvicesByDisease(widget.diseaseId);
+      setState(() {
+        _advices = advices;
+      });
+    }
+  }
+
+  Future<void> _navigateToEditScreen(Advice advice) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AdviceEditScreen(
+          advice: advice,
+          expertId: _currentUser!.id,
+          fromPlantDetail: false,
+        ),
+      ),
+    );
+
+    if (result == true && mounted) {
+      // Reload the advice list
+      final advices =
+          await AdviceService().getAdvicesByDisease(widget.diseaseId);
+      setState(() {
+        _advices = advices;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.all(16),
-          child: Text(
-            'Lời khuyên từ chuyên gia',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Lời khuyên từ chuyên gia',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (_currentUser != null) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _navigateToCreateScreen,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Tạo lời khuyên'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: advices.length,
+            itemCount: _advices.length,
             itemBuilder: (context, index) {
-              return AdviceCard(advice: advices[index]);
+              return AdviceCard(
+                advice: _advices[index],
+                currentUserId: _currentUser?.id,
+                onEdit: _navigateToEditScreen,
+              );
             },
           ),
         ),
@@ -223,8 +336,15 @@ class AdviceList extends StatelessWidget {
 
 class AdviceCard extends StatelessWidget {
   final Advice advice;
+  final int? currentUserId;
+  final Function(Advice) onEdit;
 
-  const AdviceCard({super.key, required this.advice});
+  const AdviceCard({
+    super.key,
+    required this.advice,
+    this.currentUserId,
+    required this.onEdit,
+  });
 
   String _formatDate(String? dateString) {
     if (dateString == null) return '';
@@ -301,6 +421,12 @@ class AdviceCard extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (currentUserId == advice.user?.userId)
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () => onEdit(advice),
+                      tooltip: 'Chỉnh sửa lời khuyên',
+                    ),
                 ],
               ),
               const SizedBox(height: 16),

@@ -10,12 +10,14 @@ import '../../widgets/custom_bottom_nav.dart';
 class AdviceCreateScreen extends StatefulWidget {
   final int expertId;
   final int? plantId;
+  final int? diseaseId;
   final bool fromPlantDetail;
 
   const AdviceCreateScreen({
     super.key,
     required this.expertId,
     this.plantId,
+    this.diseaseId,
     this.fromPlantDetail = false,
   });
 
@@ -63,6 +65,14 @@ class _AdviceCreateScreenState extends State<AdviceCreateScreen> {
         _selectedPlant = plants.firstWhere(
           (p) => p.plantId == widget.plantId,
           orElse: () => plants.first,
+        );
+      }
+
+      // If diseaseId is provided, find and select the corresponding disease
+      if (widget.diseaseId != null) {
+        _selectedDisease = diseases.firstWhere(
+          (d) => d.disease_id == widget.diseaseId,
+          orElse: () => diseases.first,
         );
       }
 
