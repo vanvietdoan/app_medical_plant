@@ -10,6 +10,7 @@ import '../../widgets/custom_app_bar.dart';
 import 'edit_profile_screen.dart';
 import 'change_password_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../report/report_list_screen.dart';
 
 class ExpertProfile extends StatefulWidget {
   final User expert;
@@ -68,30 +69,49 @@ class ExpertProfileState extends State<ExpertProfile> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Avatar Section
+            // Avatar Section with enhanced styling
             Center(
               child: Stack(
                 children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundImage: widget.expert.avatar.isNotEmpty
-                        ? NetworkImage(widget.expert.avatar)
-                        : null,
-                    child: widget.expert.avatar.isEmpty
-                        ? Text(
-                            widget.expert.full_name
-                                .substring(0, 1)
-                                .toUpperCase(),
-                            style: const TextStyle(fontSize: 32),
-                          )
-                        : null,
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.3),
+                          spreadRadius: 2,
+                          blurRadius: 5,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: CircleAvatar(
+                      radius: 60,
+                      backgroundColor: Colors.grey[200],
+                      backgroundImage: widget.expert.avatar.isNotEmpty
+                          ? NetworkImage(widget.expert.avatar
+                              .replaceAll('http://', 'https://'))
+                          : null,
+                      child: widget.expert.avatar.isEmpty
+                          ? Text(
+                              widget.expert.full_name
+                                  .substring(0, 1)
+                                  .toUpperCase(),
+                              style: const TextStyle(
+                                  fontSize: 40, color: Colors.grey),
+                            )
+                          : null,
+                      onBackgroundImageError: (exception, stackTrace) {
+                        debugPrint('Error loading avatar: $exception');
+                      },
+                    ),
                   ),
                   if (widget.expert.avatar.isNotEmpty)
                     Positioned(
                       right: 0,
                       bottom: 0,
                       child: Container(
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(6),
                         decoration: const BoxDecoration(
                           color: Colors.green,
                           shape: BoxShape.circle,
@@ -99,7 +119,7 @@ class ExpertProfileState extends State<ExpertProfile> {
                         child: const Icon(
                           Icons.check,
                           color: Colors.white,
-                          size: 16,
+                          size: 20,
                         ),
                       ),
                     ),
@@ -108,43 +128,65 @@ class ExpertProfileState extends State<ExpertProfile> {
             ),
             const SizedBox(height: 24),
 
-            // Role Badge
+            // Role Badge with enhanced styling
             Center(
               child: Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 decoration: BoxDecoration(
                   color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(25),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
                 ),
                 child: Text(
                   widget.expert.role?.name ?? 'Chuyên gia',
                   style: const TextStyle(
                     color: Colors.green,
                     fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
 
-            // Profile Information
-            _buildInfoSection('Họ và tên', widget.expert.full_name),
-            _buildInfoSection('Email', widget.expert.email),
-            _buildInfoSection('Chức danh', widget.expert.title),
-            _buildInfoSection('Chuyên ngành', widget.expert.specialty),
+            // Profile Information with enhanced styling
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 1,
+                    blurRadius: 5,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  _buildInfoSection('Họ và tên', widget.expert.full_name),
+                  _buildInfoSection('Email', widget.expert.email),
+                  _buildInfoSection('Chức danh', widget.expert.title),
+                  _buildInfoSection('Chuyên ngành', widget.expert.specialty),
+                ],
+              ),
+            ),
 
-            // Proof File Section
+            // Proof File Section with enhanced styling
             if (widget.expert.proof.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               const Text(
                 'Giấy tờ chứng minh',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  color: Colors.grey,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               InkWell(
                 onTap: () async {
                   final Uri url = Uri.parse(widget.expert.proof);
@@ -162,50 +204,77 @@ class ExpertProfileState extends State<ExpertProfile> {
                   }
                 },
                 child: Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        spreadRadius: 1,
+                        blurRadius: 5,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.picture_as_pdf, color: Colors.red),
-                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.picture_as_pdf,
+                            color: Colors.red, size: 24),
+                      ),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           widget.expert.proof,
                           style: const TextStyle(
                             decoration: TextDecoration.underline,
+                            color: Colors.blue,
                           ),
                         ),
                       ),
-                      const Icon(Icons.download, size: 20),
+                      const Icon(Icons.download, size: 24, color: Colors.grey),
                     ],
                   ),
                 ),
               ),
             ],
 
-            // Account Status
+            // Account Status with enhanced styling
             if (!widget.expert.active)
               Container(
-                margin: const EdgeInsets.symmetric(vertical: 16),
-                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.symmetric(vertical: 24),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.red.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.red.withOpacity(0.3)),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.warning_amber_rounded, color: Colors.red),
-                    SizedBox(width: 8),
-                    Expanded(
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.warning_amber_rounded,
+                          color: Colors.red),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
                       child: Text(
                         'Tài khoản chưa được kích hoạt',
                         style: TextStyle(
                           color: Colors.red,
                           fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
                     ),
@@ -214,37 +283,46 @@ class ExpertProfileState extends State<ExpertProfile> {
               ),
 
             const SizedBox(height: 24),
+            // Action Buttons with enhanced styling
             Row(
               children: [
                 Expanded(
-                  child: SizedBox(
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      onPressed: _manageAdvice,
-                      icon: const Icon(Icons.lock),
-                      label: const Text('Quản lý lời khuyên'),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: SizedBox(
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      onPressed: _editProfile,
-                      icon: const Icon(Icons.edit),
-                      label: const Text('Chỉnh sửa thông tin'),
-                    ),
+                  child: _buildActionButton(
+                    onPressed: _manageAdvice,
+                    icon: Icons.lightbulb_outline,
+                    label: 'Quản lý lời khuyên',
+                    color: Colors.orange,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: SizedBox(
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      onPressed: _changePassword,
-                      icon: const Icon(Icons.lock),
-                      label: const Text('Đổi mật khẩu'),
-                    ),
+                  child: _buildActionButton(
+                    onPressed: _manageReport,
+                    icon: Icons.assignment,
+                    label: 'Quản lý báo cáo',
+                    color: Colors.blue,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildActionButton(
+                    onPressed: _editProfile,
+                    icon: Icons.edit,
+                    label: 'Chỉnh sửa thông tin',
+                    color: Colors.green,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildActionButton(
+                    onPressed: _changePassword,
+                    icon: Icons.lock_outline,
+                    label: 'Đổi mật khẩu',
+                    color: Colors.purple,
                   ),
                 ),
               ],
@@ -269,6 +347,7 @@ class ExpertProfileState extends State<ExpertProfile> {
             style: const TextStyle(
               fontSize: 14,
               color: Colors.grey,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 4),
@@ -277,10 +356,37 @@ class ExpertProfileState extends State<ExpertProfile> {
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
+              color: Colors.black87,
             ),
           ),
-          const Divider(),
+          const Divider(height: 1),
         ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required VoidCallback onPressed,
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return SizedBox(
+      height: 50,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, color: Colors.white),
+        label: Text(
+          label,
+          style: const TextStyle(color: Colors.white),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          elevation: 2,
+        ),
       ),
     );
   }
@@ -307,6 +413,15 @@ class ExpertProfileState extends State<ExpertProfile> {
       context,
       MaterialPageRoute(
         builder: (context) => ManageAdviceScreen(expertId: widget.expert.id),
+      ),
+    );
+  }
+
+  void _manageReport() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ManageReportScreen(userId: widget.expert.id),
       ),
     );
   }

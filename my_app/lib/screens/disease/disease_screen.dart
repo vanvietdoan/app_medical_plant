@@ -254,11 +254,15 @@ class _DiseaseScreenState extends State<DiseaseScreen> {
                                                   top: Radius.circular(12),
                                                 ),
                                                 child: Image.network(
-                                                  disease.images.first.url,
+                                                  disease.images.first.url
+                                                      .replaceAll('http://',
+                                                          'https://'),
                                                   width: double.infinity,
                                                   fit: BoxFit.cover,
                                                   errorBuilder: (context, error,
                                                       stackTrace) {
+                                                    debugPrint(
+                                                        'Error loading disease image: $error');
                                                     return Container(
                                                       color: Colors.grey[200],
                                                       child: const Center(

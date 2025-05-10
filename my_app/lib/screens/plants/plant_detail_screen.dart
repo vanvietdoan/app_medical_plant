@@ -12,6 +12,7 @@ import '../../screens/profile/visit_profile.dart';
 import '../../screens/advice/advice_create_screen.dart';
 import '../../screens/advice/advice_edit_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class PlantDetailScreen extends StatefulWidget {
   final int plantId;
@@ -112,6 +113,13 @@ class PlantImage extends StatefulWidget {
 class _PlantImageState extends State<PlantImage> {
   int _selectedIndex = 0;
 
+  String _ensureHttps(String url) {
+    if (url.startsWith('http://')) {
+      return url.replaceFirst('http://', 'https://');
+    }
+    return url;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.plant.images == null || widget.plant.images!.isEmpty) {
@@ -124,11 +132,26 @@ class _PlantImageState extends State<PlantImage> {
         Container(
           height: 200,
           width: double.infinity,
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: NetworkImage(widget.plant.images![_selectedIndex].url),
-              fit: BoxFit.cover,
+          child: CachedNetworkImage(
+            imageUrl: _ensureHttps(widget.plant.images![_selectedIndex].url),
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(
+              color: Colors.grey[200],
+              child: const Center(
+                child: CircularProgressIndicator(),
+              ),
             ),
+            errorWidget: (context, url, error) {
+              debugPrint('Error loading image: $error');
+              return Container(
+                color: Colors.grey[200],
+                child: const Icon(
+                  Icons.error_outline,
+                  color: Colors.grey,
+                  size: 48,
+                ),
+              );
+            },
           ),
         ),
         // Thumbnails row
@@ -157,10 +180,26 @@ class _PlantImageState extends State<PlantImage> {
                       width: isSelected ? 2 : 1,
                     ),
                     borderRadius: BorderRadius.circular(8),
-                    image: DecorationImage(
-                      image: NetworkImage(widget.plant.images![index].url),
-                      fit: BoxFit.cover,
+                  ),
+                  child: CachedNetworkImage(
+                    imageUrl: _ensureHttps(widget.plant.images![index].url),
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      color: Colors.grey[200],
+                      child: const Center(
+                        child: CircularProgressIndicator(),
+                      ),
                     ),
+                    errorWidget: (context, url, error) {
+                      debugPrint('Error loading thumbnail: $error');
+                      return Container(
+                        color: Colors.grey[200],
+                        child: const Icon(
+                          Icons.error_outline,
+                          color: Colors.grey,
+                        ),
+                      );
+                    },
                   ),
                 ),
               );

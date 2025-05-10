@@ -4,7 +4,8 @@ import 'package:flutter/foundation.dart';
 
 class BaseApiService {
   //static const String baseUrl = 'http://157.20.58.220:2204/api';
-  static const String baseUrl = 'http://localhost:2204/api';
+  //static const String baseUrl = 'http://localhost:2204/api';
+  static const String baseUrl = 'https://medicalplant.apivui.click/api';
 
   static const Duration timeout = Duration(seconds: 30);
 

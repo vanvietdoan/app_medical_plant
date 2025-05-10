@@ -305,7 +305,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             backgroundImage: _avatarPath != null
                                 ? FileImage(File(_avatarPath!))
                                 : (_avatarUrl != null && _avatarUrl!.isNotEmpty)
-                                    ? NetworkImage(_avatarUrl!)
+                                    ? NetworkImage(_avatarUrl!
+                                            .replaceAll('http://', 'https://'))
                                         as ImageProvider<Object>
                                     : null,
                             child: (_avatarPath == null &&
@@ -319,6 +320,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     style: const TextStyle(fontSize: 32),
                                   )
                                 : null,
+                            onBackgroundImageError: (exception, stackTrace) {
+                              debugPrint('Error loading avatar: $exception');
+                            },
                           ),
                           Positioned(
                             right: 0,

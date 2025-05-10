@@ -262,11 +262,13 @@ class _ManageAdviceScreenState extends State<ManageAdviceScreen> {
                 const SizedBox(height: 16),
                 // Filter dropdowns
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Plant filter dropdown
                     Expanded(
                       child: DropdownButtonFormField<int>(
                         value: _selectedPlantId,
+                        isExpanded: true,
                         decoration: const InputDecoration(
                           labelText: 'Lọc theo cây',
                           border: OutlineInputBorder(),
@@ -280,7 +282,10 @@ class _ManageAdviceScreenState extends State<ManageAdviceScreen> {
                           ..._uniquePlants.map((plant) {
                             return DropdownMenuItem<int>(
                               value: plant['id'] as int,
-                              child: Text(plant['name'] as String),
+                              child: Text(
+                                plant['name'] as String,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             );
                           }),
                         ],
@@ -297,6 +302,7 @@ class _ManageAdviceScreenState extends State<ManageAdviceScreen> {
                     Expanded(
                       child: DropdownButtonFormField<int>(
                         value: _selectedDiseaseId,
+                        isExpanded: true,
                         decoration: const InputDecoration(
                           labelText: 'Lọc theo bệnh',
                           border: OutlineInputBorder(),
@@ -310,7 +316,10 @@ class _ManageAdviceScreenState extends State<ManageAdviceScreen> {
                           ..._uniqueDiseases.map((disease) {
                             return DropdownMenuItem<int>(
                               value: disease['id'] as int,
-                              child: Text(disease['name'] as String),
+                              child: Text(
+                                disease['name'] as String,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             );
                           }),
                         ],
@@ -402,19 +411,61 @@ class _ManageAdviceScreenState extends State<ManageAdviceScreen> {
                                       IconButton(
                                         icon: const Icon(Icons.edit),
                                         onPressed: () => _editAdvice(advice),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
                                       ),
+                                      const SizedBox(width: 8),
                                       IconButton(
                                         icon: const Icon(Icons.delete),
                                         onPressed: () => _deleteAdvice(advice),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
                                       ),
                                     ],
                                   ),
                                   children: [
                                     Padding(
                                       padding: const EdgeInsets.all(16),
-                                      child: Text(
-                                        advice.content ?? '',
-                                        style: const TextStyle(fontSize: 14),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            advice.content ?? '',
+                                            style:
+                                                const TextStyle(fontSize: 14),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.end,
+                                            children: [
+                                              TextButton.icon(
+                                                onPressed: () =>
+                                                    _editAdvice(advice),
+                                                icon: const Icon(Icons.edit,
+                                                    size: 18),
+                                                label: const Text('Chỉnh sửa'),
+                                                style: TextButton.styleFrom(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(horizontal: 8),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              TextButton.icon(
+                                                onPressed: () =>
+                                                    _deleteAdvice(advice),
+                                                icon: const Icon(Icons.delete,
+                                                    size: 18),
+                                                label: const Text('Xóa'),
+                                                style: TextButton.styleFrom(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(horizontal: 8),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],

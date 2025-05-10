@@ -94,10 +94,12 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(8),
                                 image: DecorationImage(
-                                  image: NetworkImage(image.url),
+                                  image: NetworkImage(image.url
+                                      .replaceAll('http://', 'https://')),
                                   fit: BoxFit.cover,
                                   onError: (exception, stackTrace) {
-                                    // Handle image loading error
+                                    debugPrint(
+                                        'Error loading disease image: $exception');
                                   },
                                 ),
                               ),

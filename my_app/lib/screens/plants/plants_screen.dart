@@ -18,6 +18,7 @@ import '../../services/genus_service.dart';
 import '../../models/genus.dart';
 import '../../services/species_service.dart';
 import '../../models/species.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class PlantsScreen extends StatefulWidget {
   const PlantsScreen({Key? key}) : super(key: key);
@@ -925,6 +926,13 @@ class PlantCard extends StatelessWidget {
 
   const PlantCard({super.key, required this.plant});
 
+  String _ensureHttps(String url) {
+    if (url.startsWith('http://')) {
+      return url.replaceFirst('http://', 'https://');
+    }
+    return url;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -945,12 +953,19 @@ class PlantCard extends StatelessWidget {
               SizedBox(
                 height: 120,
                 child: plant.images != null && plant.images!.isNotEmpty
-                    ? Image.network(
-                        plant.images![0].url,
+                    ? CachedNetworkImage(
+                        imageUrl: _ensureHttps(plant.images![0].url),
                         height: 120,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
+                        placeholder: (context, url) => Container(
+                          color: Colors.grey[200],
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) {
+                          debugPrint('Error loading plant image: $error');
                           return Container(
                             height: 120,
                             width: double.infinity,

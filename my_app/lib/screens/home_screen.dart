@@ -9,6 +9,7 @@ import '../widgets/custom_bottom_nav.dart';
 import '../services/plant_service.dart';
 import 'dart:io';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -167,6 +168,13 @@ class HomeScreenState extends State<HomeScreen>
     }
   }
 
+  String _ensureHttps(String url) {
+    if (url.startsWith('http://')) {
+      return url.replaceFirst('http://', 'https://');
+    }
+    return url;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -176,19 +184,19 @@ class HomeScreenState extends State<HomeScreen>
           children: [
             _imageSlider(),
             _buildPlantSection(
-              'Top 6 Cây Thuốc Mới Phát Hiện',
+              'Top  Cây Thuốc Mới Phát Hiện',
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _buildPlantList(_recentPlants),
             ),
             _buildPlantSection(
-              'Top 6 Cây Thuốc Có Nhiều Công Dụng',
+              'Top  Cây Thuốc Có Nhiều Công Dụng',
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _buildPlantList(_mostBeneficialPlants),
             ),
             _buildPlantSection(
-              'Top 6 Cây Thuốc Tiêu Biểu',
+              'Top  Cây Thuốc Tiêu Biểu',
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _buildPlantList(_featuredPlants),
@@ -217,25 +225,34 @@ class HomeScreenState extends State<HomeScreen>
               return Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.asset(
-                    _slides[index]['image']!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      print('Error loading image: ${_slides[index]['image']}');
-                      return Container(
-                        color: Colors.grey[200],
-                        child: const Center(
-                          child: Icon(
-                            Icons.image_not_supported,
-                            color: Colors.grey,
-                            size: 48,
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(16),
+                    ),
+                    child: Image.asset(
+                      _slides[index]['image']!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        debugPrint(
+                            'Error loading image: ${_slides[index]['image']}: $error');
+                        return Container(
+                          color: Colors.grey[200],
+                          child: const Center(
+                            child: Icon(
+                              Icons.image_not_supported,
+                              color: Colors.grey,
+                              size: 48,
+                            ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                   Container(
                     decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(16),
+                      ),
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -340,7 +357,8 @@ class HomeScreenState extends State<HomeScreen>
       ],
     );
   }
-    Widget _userSection(String title, Widget content) {
+
+  Widget _userSection(String title, Widget content) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -395,12 +413,19 @@ class HomeScreenState extends State<HomeScreen>
               SizedBox(
                 height: 120,
                 child: plant.images != null && plant.images!.isNotEmpty
-                    ? Image.network(
-                        plant.images![0].url,
+                    ? CachedNetworkImage(
+                        imageUrl: _ensureHttps(plant.images![0].url),
                         height: 120,
                         width: 150,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
+                        placeholder: (context, url) => Container(
+                          color: Colors.grey[200],
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) {
+                          debugPrint('Error loading plant image: $error');
                           return Container(
                             height: 120,
                             width: 150,

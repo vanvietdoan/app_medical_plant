@@ -11,7 +11,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final currentUser = _authService.currentUser;
-   // debugPrint('id currentUser in custom app bar: ${currentUser?.id}');
+    // debugPrint('id currentUser in custom app bar: ${currentUser?.id}');
 
     return AppBar(
       backgroundColor: const Color.fromARGB(255, 255, 255, 255),
@@ -67,10 +67,18 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   child: currentUser?.avatar != null
                       ? ClipOval(
                           child: Image.network(
-                            currentUser!.avatar!,
+                            currentUser!.avatar!
+                                .replaceAll('http://', 'https://'),
                             width: 40,
                             height: 40,
                             fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              debugPrint('Error loading avatar: $error');
+                              return const Icon(
+                                Icons.person,
+                                color: Colors.white,
+                              );
+                            },
                           ),
                         )
                       : const Icon(
