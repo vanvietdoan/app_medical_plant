@@ -7,10 +7,12 @@ import '../../widgets/custom_bottom_nav.dart';
 
 class ReportCreateScreen extends StatefulWidget {
   final int userId;
+  final int? plantId;
 
   const ReportCreateScreen({
     super.key,
     required this.userId,
+    this.plantId,
   });
 
   @override
@@ -45,6 +47,13 @@ class _ReportCreateScreenState extends State<ReportCreateScreen> {
       final plants = await _plantService.getPlants();
       setState(() {
         _plants = plants;
+        if (widget.plantId != null) {
+          _selectedPlant = plants.firstWhere(
+            (plant) => plant.plantId == widget.plantId,
+            orElse: () => plants.first,
+          );
+          _fillAllFields();
+        }
       });
     } catch (e) {
       if (mounted) {

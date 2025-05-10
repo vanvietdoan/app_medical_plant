@@ -13,6 +13,7 @@ import '../../screens/advice/advice_create_screen.dart';
 import '../../screens/advice/advice_edit_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../screens/report/report_create_screen.dart';
 
 class PlantDetailScreen extends StatefulWidget {
   final int plantId;
@@ -218,6 +219,9 @@ class PlantDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authService = AuthService();
+    final currentUser = authService.currentUser;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -237,6 +241,39 @@ class PlantDetails extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey[600],
+              ),
+            ),
+          ],
+          if (currentUser != null) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ReportCreateScreen(
+                        userId: currentUser.id,
+                        plantId: plant.plantId,
+                      ),
+                    ),
+                  );
+                  if (result == true) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Báo cáo đã được tạo thành công'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.add_chart),
+                label: const Text('Tạo báo cáo'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
               ),
             ),
           ],

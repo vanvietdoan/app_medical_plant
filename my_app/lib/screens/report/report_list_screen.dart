@@ -9,6 +9,7 @@ import 'report_create_screen.dart';
 import '../../widgets/custom_bottom_nav.dart';
 import 'package:flutter/foundation.dart';
 import '../plants/plant_detail_screen.dart';
+import '../../services/auth_service.dart';
 
 class ManageReportScreen extends StatefulWidget {
   final int userId;
@@ -26,6 +27,7 @@ class _ManageReportScreenState extends State<ManageReportScreen> {
   final _reportService = ReportService();
   final _plantService = PlantService();
   final _searchController = TextEditingController();
+  final _authService = AuthService();
 
   List<Report> _reports = [];
   List<Report> _filteredReports = [];
@@ -71,7 +73,7 @@ class _ManageReportScreenState extends State<ManageReportScreen> {
       if (kDebugMode) {
         debugPrint('📥 Đang tải danh sách báo cáo cho user: ${widget.userId}');
       }
-      final reports = await ReportService().getUserReports(widget.userId);
+      final reports = await _reportService.getUserReports(widget.userId);
 
       // Load plant names for all reports
       for (var report in reports) {
@@ -91,10 +93,6 @@ class _ManageReportScreenState extends State<ManageReportScreen> {
 
       if (kDebugMode) {
         debugPrint('✅ Đã tải ${reports.length} báo cáo');
-        for (var report in reports) {
-          debugPrint(
-              '📄 Báo cáo: ${report.reportId} - ${report.plantName} (${report.plantEnglishName})');
-        }
       }
 
       if (!mounted) return;
@@ -289,7 +287,27 @@ class _ManageReportScreenState extends State<ManageReportScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Quản lý báo cáo'),
+        title: Text(
+            'Danh sách báo cáo (${_filteredReports.length}/${_reports.length})'),
+        actions: [
+          if (_authService.currentUser != null)
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ReportCreateScreen(
+                      userId: _authService.currentUser!.id,
+                    ),
+                  ),
+                );
+                if (result == true) {
+                  _loadReports();
+                }
+              },
+            ),
+        ],
       ),
       body: Column(
         children: [
@@ -540,6 +558,7 @@ class _ManageReportScreenState extends State<ManageReportScreen> {
                                         children: [
                                           Expanded(
                                             child: Row(
+                                              mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 Text(
                                                   'Ngày tạo: ${DateFormat('dd/MM/yyyy').format(report.createdAt ?? DateTime.now())}',
@@ -557,29 +576,51 @@ class _ManageReportScreenState extends State<ManageReportScreen> {
                                                   ),
                                                 ),
                                                 const SizedBox(width: 8),
-                                                InkWell(
-                                                  onTap: () {
-                                                    Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder: (context) =>
-                                                            PlantDetailScreen(
-                                                          plantId:
-                                                              report.plantId ??
-                                                                  0,
+                                                Flexible(
+                                                  child: InkWell(
+                                                    onTap: () {
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              PlantDetailScreen(
+                                                            plantId: report
+                                                                    .plantId ??
+                                                                0,
+                                                          ),
                                                         ),
-                                                      ),
-                                                    );
-                                                  },
-                                                  child: Text(
-                                                    _plantNames[
-                                                            report.plantId] ??
-                                                        'Không có tên cây',
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      color: Colors.blue[600],
-                                                      decoration: TextDecoration
-                                                          .underline,
+                                                      );
+                                                    },
+                                                    child: Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        const Icon(
+                                                          Icons.eco,
+                                                          color: Colors.green,
+                                                          size: 16,
+                                                        ),
+                                                        const SizedBox(
+                                                            width: 4),
+                                                        Flexible(
+                                                          child: Text(
+                                                            _plantNames[report
+                                                                    .plantId] ??
+                                                                'Không có tên cây',
+                                                            style:
+                                                                const TextStyle(
+                                                              color:
+                                                                  Colors.green,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
                                                   ),
                                                 ),
@@ -587,6 +628,7 @@ class _ManageReportScreenState extends State<ManageReportScreen> {
                                             ),
                                           ),
                                           Row(
+                                            mainAxisSize: MainAxisSize.min,
                                             children: [
                                               if (report.status == null)
                                                 IconButton(
@@ -594,6 +636,9 @@ class _ManageReportScreenState extends State<ManageReportScreen> {
                                                   onPressed: () =>
                                                       _editReport(report),
                                                   tooltip: 'Chỉnh sửa',
+                                                  padding: EdgeInsets.zero,
+                                                  constraints:
+                                                      const BoxConstraints(),
                                                 ),
                                               if (report.status == null)
                                                 IconButton(
@@ -602,6 +647,9 @@ class _ManageReportScreenState extends State<ManageReportScreen> {
                                                   onPressed: () =>
                                                       _deleteReport(report),
                                                   tooltip: 'Xóa',
+                                                  padding: EdgeInsets.zero,
+                                                  constraints:
+                                                      const BoxConstraints(),
                                                 ),
                                             ],
                                           ),
